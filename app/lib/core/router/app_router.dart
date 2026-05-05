@@ -1,24 +1,43 @@
 ﻿import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import '../../providers/auth_provider.dart';
 import '../../features/auth/login_page.dart';
+import '../../features/auth/register_page.dart';
 import '../../features/feed/feed_page.dart';
 import '../../features/post/post_page.dart';
+import '../../features/post/post_detail_page.dart';
 import '../../features/profile/profile_page.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
+  final authState = ref.watch(authProvider);
+
   return GoRouter(
     initialLocation: '/feed',
+    redirect: (context, state) {
+      if (authState.isLoading) return null;
+      final isLoggedIn = authState.valueOrNull != null;
+      final isAuthRoute = state.matchedLocation == '/login' ||
+          state.matchedLocation == '/register';
+      if (!isLoggedIn && !isAuthRoute) return '/login';
+      if (isLoggedIn && isAuthRoute) return '/feed';
+      return null;
+    },
     routes: [
       GoRoute(path: '/login', builder: (_, __) => const LoginPage()),
+      GoRoute(path: '/register', builder: (_, __) => const RegisterPage()),
       ShellRoute(
         builder: (context, state, child) => MainShell(child: child),
         routes: [
           GoRoute(path: '/feed', builder: (_, __) => const FeedPage()),
           GoRoute(path: '/post', builder: (_, __) => const PostPage()),
-          GoRoute(
-              path: '/profile', builder: (_, __) => const ProfilePage()),
+          GoRoute(path: '/profile', builder: (_, __) => const ProfilePage()),
         ],
+      ),
+      GoRoute(
+        path: '/post/:id',
+        builder: (context, state) =>
+            PostDetailPage(postId: state.pathParameters['id']!),
       ),
     ],
   );
@@ -48,9 +67,10 @@ class MainShell extends StatelessWidget {
           }
         },
         items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: '怪談'),
-          BottomNavigationBarItem(icon: Icon(Icons.create), label: '投稿'),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'プロフィール'),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.auto_stories), label: '怪談'),
+          BottomNavigationBarItem(icon: Icon(Icons.edit), label: '投稿'),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'マイページ'),
         ],
       ),
     );
