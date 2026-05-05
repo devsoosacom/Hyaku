@@ -7,6 +7,8 @@ class PostModel {
   final DateTime createdAt;
   final Set<String> likedBy;
   final int commentCount;
+  final List<String> tags;
+  final Set<String> bookmarkedBy;
 
   const PostModel({
     required this.id,
@@ -17,15 +19,19 @@ class PostModel {
     required this.createdAt,
     this.likedBy = const {},
     this.commentCount = 0,
+    this.tags = const [],
+    this.bookmarkedBy = const {},
   });
 
   int get likeCount => likedBy.length;
-
   bool isLikedBy(String userId) => likedBy.contains(userId);
+  bool isBookmarkedBy(String userId) => bookmarkedBy.contains(userId);
 
   PostModel copyWith({
     Set<String>? likedBy,
     int? commentCount,
+    List<String>? tags,
+    Set<String>? bookmarkedBy,
   }) {
     return PostModel(
       id: id,
@@ -36,6 +42,8 @@ class PostModel {
       createdAt: createdAt,
       likedBy: likedBy ?? this.likedBy,
       commentCount: commentCount ?? this.commentCount,
+      tags: tags ?? this.tags,
+      bookmarkedBy: bookmarkedBy ?? this.bookmarkedBy,
     );
   }
 }

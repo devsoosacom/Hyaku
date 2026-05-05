@@ -166,6 +166,31 @@ class _PostDetailPageState extends ConsumerState<PostDetailPage> {
                           height: 2.0,
                         ),
                       ),
+                      if (post.tags.isNotEmpty) ...[
+                        const SizedBox(height: 16),
+                        Wrap(
+                          spacing: 8,
+                          children: post.tags
+                              .map((t) => Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 10, vertical: 3),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFF1A0000),
+                                      borderRadius: BorderRadius.circular(3),
+                                      border: Border.all(
+                                          color: const Color(0xFF3A1A1A)),
+                                    ),
+                                    child: Text(
+                                      t,
+                                      style: GoogleFonts.notoSerifJp(
+                                        fontSize: 11,
+                                        color: const Color(0xFF993333),
+                                      ),
+                                    ),
+                                  ))
+                              .toList(),
+                        ),
+                      ],
                       const SizedBox(height: 24),
                       Row(
                         children: [
@@ -212,6 +237,22 @@ class _PostDetailPageState extends ConsumerState<PostDetailPage> {
                               ),
                             ],
                           ),
+                          const Spacer(),
+                          if (user != null)
+                            GestureDetector(
+                              onTap: () => ref
+                                  .read(postActionsProvider.notifier)
+                                  .toggleBookmark(post, user.id),
+                              child: Icon(
+                                post.isBookmarkedBy(user.id)
+                                    ? Icons.bookmark
+                                    : Icons.bookmark_border,
+                                color: post.isBookmarkedBy(user.id)
+                                    ? const Color(0xFFCC0000)
+                                    : const Color(0xFF666666),
+                                size: 22,
+                              ),
+                            ),
                         ],
                       ),
                       const SizedBox(height: 32),

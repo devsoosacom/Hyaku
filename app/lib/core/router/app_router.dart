@@ -1,13 +1,16 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../providers/auth_provider.dart';
 import '../../features/auth/login_page.dart';
 import '../../features/auth/register_page.dart';
 import '../../features/feed/feed_page.dart';
+import '../../features/search/search_page.dart';
 import '../../features/post/post_page.dart';
 import '../../features/post/post_detail_page.dart';
 import '../../features/profile/profile_page.dart';
+import '../../features/profile/edit_profile_page.dart';
+import '../../features/notifications/notifications_page.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authProvider);
@@ -30,6 +33,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state, child) => MainShell(child: child),
         routes: [
           GoRoute(path: '/feed', builder: (_, __) => const FeedPage()),
+          GoRoute(path: '/search', builder: (_, __) => const SearchPage()),
           GoRoute(path: '/post', builder: (_, __) => const PostPage()),
           GoRoute(path: '/profile', builder: (_, __) => const ProfilePage()),
         ],
@@ -38,6 +42,14 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/post/:id',
         builder: (context, state) =>
             PostDetailPage(postId: state.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: '/notifications',
+        builder: (_, __) => const NotificationsPage(),
+      ),
+      GoRoute(
+        path: '/profile/edit',
+        builder: (_, __) => const EditProfilePage(),
       ),
     ],
   );
@@ -54,23 +66,33 @@ class MainShell extends StatelessWidget {
       bottomNavigationBar: BottomNavigationBar(
         backgroundColor: const Color(0xFF0A0A0A),
         selectedItemColor: const Color(0xFFCC0000),
-        unselectedItemColor: const Color(0xFF888888),
+        unselectedItemColor: const Color(0xFF555555),
         currentIndex: _currentIndex(context),
+        type: BottomNavigationBarType.fixed,
+        selectedLabelStyle:
+            const TextStyle(fontSize: 10, fontWeight: FontWeight.w600),
+        unselectedLabelStyle: const TextStyle(fontSize: 10),
         onTap: (i) {
           switch (i) {
             case 0:
               context.go('/feed');
             case 1:
-              context.go('/post');
+              context.go('/search');
             case 2:
+              context.go('/post');
+            case 3:
               context.go('/profile');
           }
         },
         items: const [
           BottomNavigationBarItem(
               icon: Icon(Icons.auto_stories), label: '怪談'),
-          BottomNavigationBarItem(icon: Icon(Icons.edit), label: '投稿'),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'マイページ'),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.search), label: '検索'),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.edit), label: '投稿'),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.person), label: 'マイページ'),
         ],
       ),
     );
@@ -78,8 +100,9 @@ class MainShell extends StatelessWidget {
 
   int _currentIndex(BuildContext context) {
     final loc = GoRouterState.of(context).uri.path;
-    if (loc.startsWith('/post')) return 1;
-    if (loc.startsWith('/profile')) return 2;
+    if (loc.startsWith('/search')) return 1;
+    if (loc.startsWith('/post')) return 2;
+    if (loc.startsWith('/profile')) return 3;
     return 0;
   }
 }

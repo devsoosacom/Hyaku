@@ -15,6 +15,7 @@ class PostCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(currentUserProvider);
     final isLiked = user != null && post.isLikedBy(user.id);
+    final isBookmarked = user != null && post.isBookmarkedBy(user.id);
 
     return GestureDetector(
       onTap: () => context.push('/post/${post.id}'),
@@ -36,9 +37,7 @@ class PostCard extends ConsumerWidget {
                     radius: 16,
                     backgroundColor: const Color(0xFF2A2A2A),
                     child: Text(
-                      post.authorName.isNotEmpty
-                          ? post.authorName[0]
-                          : '?',
+                      post.authorName.isNotEmpty ? post.authorName[0] : '?',
                       style: GoogleFonts.notoSerifJp(
                         fontSize: 13,
                         color: const Color(0xFFCC0000),
@@ -60,11 +59,10 @@ class PostCard extends ConsumerWidget {
                           ),
                         ),
                         Text(
-                          DateFormat('yyyy年MM月dd日 HH:mm').format(post.createdAt),
+                          DateFormat('yyyy年MM月dd日 HH:mm')
+                              .format(post.createdAt),
                           style: const TextStyle(
-                            fontSize: 11,
-                            color: Color(0xFF666666),
-                          ),
+                              fontSize: 11, color: Color(0xFF666666)),
                         ),
                       ],
                     ),
@@ -84,6 +82,35 @@ class PostCard extends ConsumerWidget {
                 ),
               ),
             ),
+            if (post.tags.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Row(
+                  children: post.tags
+                      .map((t) => Container(
+                            margin: const EdgeInsets.only(right: 6),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF1A0000),
+                              borderRadius: BorderRadius.circular(3),
+                              border:
+                                  Border.all(color: const Color(0xFF3A1A1A)),
+                            ),
+                            child: Text(
+                              t,
+                              style: GoogleFonts.notoSerifJp(
+                                fontSize: 10,
+                                color: const Color(0xFF993333),
+                              ),
+                            ),
+                          ))
+                      .toList(),
+                ),
+              ),
+            ],
             const SizedBox(height: 8),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -123,7 +150,25 @@ class PostCard extends ConsumerWidget {
                     onTap: () => context.push('/post/${post.id}'),
                   ),
                   const Spacer(),
-                  if (user?.id == post.userId)
+                  if (user != null)
+                    IconButton(
+                      icon: Icon(
+                        isBookmarked
+                            ? Icons.bookmark
+                            : Icons.bookmark_border,
+                        color: isBookmarked
+                            ? const Color(0xFFCC0000)
+                            : const Color(0xFF444444),
+                        size: 18,
+                      ),
+                      onPressed: () => ref
+                          .read(postActionsProvider.notifier)
+                          .toggleBookmark(post, user.id),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ),
+                  if (user?.id == post.userId) ...[
+                    const SizedBox(width: 8),
                     IconButton(
                       icon: const Icon(Icons.delete_outline,
                           color: Color(0xFF444444), size: 18),
@@ -131,6 +176,7 @@ class PostCard extends ConsumerWidget {
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(),
                     ),
+                  ],
                 ],
               ),
             ),
@@ -194,8 +240,7 @@ class _ActionButton extends StatelessWidget {
           children: [
             Icon(icon, color: color, size: 18),
             const SizedBox(width: 4),
-            Text(label,
-                style: TextStyle(color: color, fontSize: 13)),
+            Text(label, style: TextStyle(color: color, fontSize: 13)),
           ],
         ),
       ),

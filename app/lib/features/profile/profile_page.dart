@@ -1,8 +1,10 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/notification_provider.dart';
 import '../../providers/post_provider.dart';
 
 class ProfilePage extends ConsumerWidget {
@@ -14,6 +16,8 @@ class ProfilePage extends ConsumerWidget {
     if (user == null) return const SizedBox.shrink();
 
     final userPostsAsync = ref.watch(userPostsProvider(user.id));
+    final bookmarkedAsync = ref.watch(bookmarkedPostsProvider(user.id));
+    final unreadCount = ref.watch(unreadCountProvider(user.id));
 
     return Scaffold(
       backgroundColor: const Color(0xFF0A0A0A),
@@ -34,9 +38,41 @@ class ProfilePage extends ConsumerWidget {
           child: Container(height: 1, color: const Color(0xFF1E1E1E)),
         ),
         actions: [
+          Stack(
+            children: [
+              IconButton(
+                icon: const Icon(Icons.notifications_outlined,
+                    color: Color(0xFF888888), size: 22),
+                onPressed: () => context.push('/notifications'),
+              ),
+              if (unreadCount > 0)
+                Positioned(
+                  right: 8,
+                  top: 8,
+                  child: Container(
+                    width: 16,
+                    height: 16,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFCC0000),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Center(
+                      child: Text(
+                        '$unreadCount',
+                        style: const TextStyle(
+                            fontSize: 9,
+                            color: Colors.white,
+                            fontWeight: FontWeight.w700),
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
           IconButton(
-            icon: const Icon(Icons.logout, color: Color(0xFF666666), size: 20),
-            onPressed: () => _confirmSignOut(context, ref),
+            icon: const Icon(Icons.edit_outlined,
+                color: Color(0xFF888888), size: 20),
+            onPressed: () => context.push('/profile/edit'),
           ),
         ],
       ),
@@ -44,21 +80,17 @@ class ProfilePage extends ConsumerWidget {
         children: [
           const SizedBox(height: 32),
           Center(
-            child: Stack(
-              children: [
-                CircleAvatar(
-                  radius: 44,
-                  backgroundColor: const Color(0xFF2A2A2A),
-                  child: Text(
-                    user.displayName.isNotEmpty ? user.displayName[0] : '?',
-                    style: GoogleFonts.notoSerifJp(
-                      fontSize: 32,
-                      color: const Color(0xFFCC0000),
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
+            child: CircleAvatar(
+              radius: 44,
+              backgroundColor: const Color(0xFF2A2A2A),
+              child: Text(
+                user.displayName.isNotEmpty ? user.displayName[0] : '?',
+                style: GoogleFonts.notoSerifJp(
+                  fontSize: 32,
+                  color: const Color(0xFFCC0000),
+                  fontWeight: FontWeight.w700,
                 ),
-              ],
+              ),
             ),
           ),
           const SizedBox(height: 16),
@@ -93,6 +125,7 @@ class ProfilePage extends ConsumerWidget {
             ),
           ],
           const SizedBox(height: 24),
+          // Stats row
           Container(
             margin: const EdgeInsets.symmetric(horizontal: 40),
             padding: const EdgeInsets.symmetric(vertical: 14),
@@ -106,99 +139,70 @@ class ProfilePage extends ConsumerWidget {
                 child: SizedBox(
                   width: 20,
                   height: 20,
-                  child:
-                      CircularProgressIndicator(color: Color(0xFFCC0000), strokeWidth: 2),
+                  child: CircularProgressIndicator(
+                      color: Color(0xFFCC0000), strokeWidth: 2),
                 ),
               ),
               error: (_, __) => const SizedBox.shrink(),
               data: (posts) => Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Column(
-                    children: [
-                      Text(
-                        '${posts.length}',
-                        style: GoogleFonts.notoSerifJp(
-                          fontSize: 24,
-                          fontWeight: FontWeight.w700,
-                          color: const Color(0xFFCC0000),
-                        ),
-                      ),
-                      Text(
-                        '怪談',
-                        style: GoogleFonts.notoSerifJp(
-                          fontSize: 11,
-                          color: const Color(0xFF888888),
-                        ),
-                      ),
-                    ],
+                  _Stat('${posts.length}', '怪談'),
+                  _divider(),
+                  _Stat(
+                    posts.fold(0, (s, p) => s + p.likeCount).toString(),
+                    '累計いいね',
                   ),
-                  Container(
-                    width: 1,
-                    height: 40,
-                    color: const Color(0xFF2A2A2A),
-                    margin: const EdgeInsets.symmetric(horizontal: 32),
-                  ),
-                  Column(
-                    children: [
-                      Text(
-                        posts.fold(0, (sum, p) => sum + p.likeCount).toString(),
-                        style: GoogleFonts.notoSerifJp(
-                          fontSize: 24,
-                          fontWeight: FontWeight.w700,
-                          color: const Color(0xFFCC0000),
-                        ),
-                      ),
-                      Text(
-                        '累計いいね',
-                        style: GoogleFonts.notoSerifJp(
-                          fontSize: 11,
-                          color: const Color(0xFF888888),
-                        ),
-                      ),
-                    ],
+                  _divider(),
+                  bookmarkedAsync.when(
+                    data: (bm) => _Stat('${bm.length}', '保存済み'),
+                    loading: () => _Stat('-', '保存済み'),
+                    error: (_, __) => _Stat('0', '保存済み'),
                   ),
                 ],
               ),
             ),
           ),
           const SizedBox(height: 32),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Text(
-              '投稿した怪談',
-              style: GoogleFonts.notoSerifJp(
-                fontSize: 13,
-                color: const Color(0xFF888888),
-                letterSpacing: 1,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
+          // My posts
+          _SectionHeader('投稿した怪談'),
           const SizedBox(height: 12),
           userPostsAsync.when(
             loading: () => const SizedBox(height: 60),
             error: (_, __) => const SizedBox.shrink(),
             data: (posts) {
               if (posts.isEmpty) {
-                return Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 32),
-                  child: Text(
-                    'まだ怪談を投稿していません',
-                    textAlign: TextAlign.center,
-                    style: GoogleFonts.notoSerifJp(
-                      color: const Color(0xFF555555),
-                      fontSize: 13,
-                    ),
-                  ),
-                );
+                return _EmptyMessage('まだ怪談を投稿していません');
               }
               return Column(
                 children: posts
-                    .map((post) => _ProfilePostTile(
-                          title: post.title,
-                          date: DateFormat('yyyy年MM月dd日').format(post.createdAt),
-                          likeCount: post.likeCount,
+                    .map((p) => _PostTile(
+                          title: p.title,
+                          date: DateFormat('yyyy年MM月dd日').format(p.createdAt),
+                          likeCount: p.likeCount,
+                        ))
+                    .toList(),
+              );
+            },
+          ),
+          const SizedBox(height: 32),
+          // Bookmarks
+          _SectionHeader('保存した怪談'),
+          const SizedBox(height: 12),
+          bookmarkedAsync.when(
+            loading: () => const SizedBox(height: 60),
+            error: (_, __) => const SizedBox.shrink(),
+            data: (posts) {
+              if (posts.isEmpty) {
+                return _EmptyMessage('保存した怪談はありません');
+              }
+              return Column(
+                children: posts
+                    .map((p) => _PostTile(
+                          title: p.title,
+                          date: DateFormat('yyyy年MM月dd日').format(p.createdAt),
+                          likeCount: p.likeCount,
+                          isBookmark: true,
                         ))
                     .toList(),
               );
@@ -228,6 +232,13 @@ class ProfilePage extends ConsumerWidget {
     );
   }
 
+  Widget _divider() => Container(
+        width: 1,
+        height: 40,
+        color: const Color(0xFF2A2A2A),
+        margin: const EdgeInsets.symmetric(horizontal: 24),
+      );
+
   Future<void> _confirmSignOut(BuildContext context, WidgetRef ref) async {
     final ok = await showDialog<bool>(
       context: context,
@@ -255,15 +266,83 @@ class ProfilePage extends ConsumerWidget {
   }
 }
 
-class _ProfilePostTile extends StatelessWidget {
-  const _ProfilePostTile({
+class _Stat extends StatelessWidget {
+  const _Stat(this.value, this.label);
+  final String value;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Text(
+          value,
+          style: GoogleFonts.notoSerifJp(
+            fontSize: 22,
+            fontWeight: FontWeight.w700,
+            color: const Color(0xFFCC0000),
+          ),
+        ),
+        Text(
+          label,
+          style: GoogleFonts.notoSerifJp(
+              fontSize: 10, color: const Color(0xFF888888)),
+        ),
+      ],
+    );
+  }
+}
+
+class _SectionHeader extends StatelessWidget {
+  const _SectionHeader(this.text);
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Text(
+        text,
+        style: GoogleFonts.notoSerifJp(
+          fontSize: 13,
+          color: const Color(0xFF888888),
+          letterSpacing: 1,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+}
+
+class _EmptyMessage extends StatelessWidget {
+  const _EmptyMessage(this.text);
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 24),
+      child: Text(
+        text,
+        textAlign: TextAlign.center,
+        style: GoogleFonts.notoSerifJp(
+            color: const Color(0xFF555555), fontSize: 13),
+      ),
+    );
+  }
+}
+
+class _PostTile extends StatelessWidget {
+  const _PostTile({
     required this.title,
     required this.date,
     required this.likeCount,
+    this.isBookmark = false,
   });
   final String title;
   final String date;
   final int likeCount;
+  final bool isBookmark;
 
   @override
   Widget build(BuildContext context) {
@@ -277,6 +356,12 @@ class _ProfilePostTile extends StatelessWidget {
       ),
       child: Row(
         children: [
+          if (isBookmark)
+            const Padding(
+              padding: EdgeInsets.only(right: 10),
+              child: Icon(Icons.bookmark,
+                  color: Color(0xFFCC0000), size: 14),
+            ),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -302,7 +387,8 @@ class _ProfilePostTile extends StatelessWidget {
           ),
           Row(
             children: [
-              const Icon(Icons.favorite, color: Color(0xFFCC0000), size: 14),
+              const Icon(Icons.favorite,
+                  color: Color(0xFFCC0000), size: 14),
               const SizedBox(width: 4),
               Text(
                 '$likeCount',

@@ -17,9 +17,39 @@ final userPostsProvider =
   return ref.watch(postRepositoryProvider).getPostsByUser(userId);
 });
 
+final bookmarkedPostsProvider =
+    StreamProvider.family<List<PostModel>, String>((ref, userId) {
+  return ref.watch(postRepositoryProvider).getBookmarkedPosts(userId);
+});
+
 final commentsProvider =
     StreamProvider.family<List<CommentModel>, String>((ref, postId) {
   return ref.watch(postRepositoryProvider).getComments(postId);
+});
+
+// Search state
+final searchQueryProvider = StateProvider<String>((ref) => '');
+final selectedTagProvider = StateProvider<String?>((ref) => null);
+
+final searchResultsProvider = Provider<AsyncValue<List<PostModel>>>((ref) {
+  final query = ref.watch(searchQueryProvider).trim().toLowerCase();
+  final tag = ref.watch(selectedTagProvider);
+  final postsAsync = ref.watch(postsProvider);
+
+  return postsAsync.whenData((posts) {
+    var results = posts;
+    if (tag != null) {
+      results = results.where((p) => p.tags.contains(tag)).toList();
+    }
+    if (query.isNotEmpty) {
+      results = results.where((p) {
+        return p.title.toLowerCase().contains(query) ||
+            p.content.toLowerCase().contains(query) ||
+            p.authorName.toLowerCase().contains(query);
+      }).toList();
+    }
+    return results;
+  });
 });
 
 class PostActionsNotifier extends StateNotifier<bool> {
@@ -32,6 +62,7 @@ class PostActionsNotifier extends StateNotifier<bool> {
     required String authorName,
     required String title,
     required String content,
+    List<String> tags = const [],
   }) async {
     state = true;
     try {
@@ -40,6 +71,7 @@ class PostActionsNotifier extends StateNotifier<bool> {
         authorName: authorName,
         title: title,
         content: content,
+        tags: tags,
       );
     } finally {
       state = false;
@@ -51,6 +83,14 @@ class PostActionsNotifier extends StateNotifier<bool> {
       await _repo.unlikePost(post.id, userId);
     } else {
       await _repo.likePost(post.id, userId);
+    }
+  }
+
+  Future<void> toggleBookmark(PostModel post, String userId) async {
+    if (post.isBookmarkedBy(userId)) {
+      await _repo.unbookmarkPost(post.id, userId);
+    } else {
+      await _repo.bookmarkPost(post.id, userId);
     }
   }
 
