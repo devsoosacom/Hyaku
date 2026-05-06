@@ -12,17 +12,26 @@ import '../../features/profile/profile_page.dart';
 import '../../features/profile/edit_profile_page.dart';
 import '../../features/notifications/notifications_page.dart';
 
+class _RouterRefreshNotifier extends ChangeNotifier {
+  void refresh() => notifyListeners();
+}
+
 final routerProvider = Provider<GoRouter>((ref) {
-  final authState = ref.watch(authProvider);
+  final notifier = _RouterRefreshNotifier();
+  ref.listen(authProvider, (_, __) => notifier.refresh());
+  ref.onDispose(notifier.dispose);
 
   return GoRouter(
     initialLocation: '/feed',
+    refreshListenable: notifier,
     redirect: (context, state) {
+      final authState = ref.read(authProvider);
       if (authState.isLoading) return null;
       final isLoggedIn = authState.valueOrNull != null;
-      final isAuthRoute = state.matchedLocation == '/login' ||
-          state.matchedLocation == '/register';
-      if (!isLoggedIn && !isAuthRoute) return '/login';
+      final loc = state.matchedLocation;
+      final isAuthRoute = loc == '/login' || loc == '/register';
+      final isProtected = loc == '/post' || loc == '/profile';
+      if (!isLoggedIn && isProtected) return '/login';
       if (isLoggedIn && isAuthRoute) return '/feed';
       return null;
     },
@@ -43,14 +52,8 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) =>
             PostDetailPage(postId: state.pathParameters['id']!),
       ),
-      GoRoute(
-        path: '/notifications',
-        builder: (_, __) => const NotificationsPage(),
-      ),
-      GoRoute(
-        path: '/profile/edit',
-        builder: (_, __) => const EditProfilePage(),
-      ),
+      GoRoute(path: '/notifications', builder: (_, __) => const NotificationsPage()),
+      GoRoute(path: '/profile/edit', builder: (_, __) => const EditProfilePage()),
     ],
   );
 });
@@ -63,37 +66,34 @@ class MainShell extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       body: child,
-      bottomNavigationBar: BottomNavigationBar(
-        backgroundColor: const Color(0xFF0A0A0A),
-        selectedItemColor: const Color(0xFFCC0000),
-        unselectedItemColor: const Color(0xFF555555),
-        currentIndex: _currentIndex(context),
-        type: BottomNavigationBarType.fixed,
-        selectedLabelStyle:
-            const TextStyle(fontSize: 10, fontWeight: FontWeight.w600),
-        unselectedLabelStyle: const TextStyle(fontSize: 10),
-        onTap: (i) {
-          switch (i) {
-            case 0:
-              context.go('/feed');
-            case 1:
-              context.go('/search');
-            case 2:
-              context.go('/post');
-            case 3:
-              context.go('/profile');
-          }
-        },
-        items: const [
-          BottomNavigationBarItem(
-              icon: Icon(Icons.auto_stories), label: '怪談'),
-          BottomNavigationBarItem(
-              icon: Icon(Icons.search), label: '検索'),
-          BottomNavigationBarItem(
-              icon: Icon(Icons.edit), label: '投稿'),
-          BottomNavigationBarItem(
-              icon: Icon(Icons.person), label: 'マイページ'),
-        ],
+      bottomNavigationBar: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 600),
+          child: BottomNavigationBar(
+            backgroundColor: const Color(0xFF0A0A0A),
+            selectedItemColor: const Color(0xFFCC0000),
+            unselectedItemColor: const Color(0xFF555555),
+            currentIndex: _currentIndex(context),
+            type: BottomNavigationBarType.fixed,
+            selectedLabelStyle:
+                const TextStyle(fontSize: 10, fontWeight: FontWeight.w600),
+            unselectedLabelStyle: const TextStyle(fontSize: 10),
+            onTap: (i) {
+              switch (i) {
+                case 0: context.go('/feed');
+                case 1: context.go('/search');
+                case 2: context.go('/post');
+                case 3: context.go('/profile');
+              }
+            },
+            items: const [
+              BottomNavigationBarItem(icon: Icon(Icons.auto_stories), label: '怪談'),
+              BottomNavigationBarItem(icon: Icon(Icons.search), label: '検索'),
+              BottomNavigationBarItem(icon: Icon(Icons.edit), label: '投稿'),
+              BottomNavigationBarItem(icon: Icon(Icons.person), label: 'マイページ'),
+            ],
+          ),
+        ),
       ),
     );
   }

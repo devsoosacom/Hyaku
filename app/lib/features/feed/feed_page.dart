@@ -1,8 +1,12 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../providers/auth_provider.dart';
+import '../../providers/follow_provider.dart';
 import '../../providers/post_provider.dart';
 import 'widgets/post_card.dart';
+
+final _feedTabProvider = StateProvider<int>((ref) => 0);
 
 class FeedPage extends ConsumerWidget {
   const FeedPage({super.key});
@@ -10,6 +14,12 @@ class FeedPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final postsAsync = ref.watch(postsProvider);
+    final currentUser = ref.watch(currentUserProvider);
+    final tab = ref.watch(_feedTabProvider);
+
+    final followingAsync = currentUser != null
+        ? ref.watch(followingProvider(currentUser.id))
+        : null;
 
     return Scaffold(
       backgroundColor: const Color(0xFF0A0A0A),
@@ -27,8 +37,20 @@ class FeedPage extends ConsumerWidget {
         ),
         centerTitle: true,
         bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(1),
-          child: Container(height: 1, color: const Color(0xFF1E1E1E)),
+          preferredSize: const Size.fromHeight(41),
+          child: Column(
+            children: [
+              Container(height: 1, color: const Color(0xFF1E1E1E)),
+              Row(
+                children: [
+                  _Tab(label: '全て', selected: tab == 0,
+                      onTap: () => ref.read(_feedTabProvider.notifier).state = 0),
+                  _Tab(label: 'フォロー中', selected: tab == 1,
+                      onTap: () => ref.read(_feedTabProvider.notifier).state = 1),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
       body: postsAsync.when(
@@ -36,42 +58,52 @@ class FeedPage extends ConsumerWidget {
           child: CircularProgressIndicator(color: Color(0xFFCC0000)),
         ),
         error: (e, _) => Center(
-          child: Text('エラーが発生しました', style: TextStyle(color: Colors.grey[600])),
+          child: Text('エラーが発生しました',
+              style: TextStyle(color: Colors.grey[600])),
         ),
-        data: (posts) {
+        data: (allPosts) {
+          // Filter by following tab
+          final posts = (tab == 1 && currentUser != null)
+              ? followingAsync?.valueOrNull != null
+                  ? allPosts
+                      .where((p) =>
+                          followingAsync!.valueOrNull!.contains(p.userId))
+                      .toList()
+                  : <dynamic>[]
+              : allPosts;
+
           if (posts.isEmpty) {
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.auto_stories,
+                  Icon(tab == 1 ? Icons.people_outline : Icons.auto_stories,
                       size: 48, color: Colors.grey[800]),
                   const SizedBox(height: 16),
                   Text(
-                    'まだ怪談がありません',
+                    tab == 1
+                        ? 'フォロー中のユーザーの怪談はありません'
+                        : 'まだ怪談がありません',
                     style: GoogleFonts.notoSerifJp(
-                      color: Colors.grey[600],
-                      fontSize: 15,
-                    ),
+                        color: Colors.grey[600], fontSize: 14),
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    '最初の一話を語りましょう',
-                    style: GoogleFonts.notoSerifJp(
-                      color: Colors.grey[700],
-                      fontSize: 12,
+                  if (tab == 1) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      '怪談師をフォローして怪談を集めましょう',
+                      style: GoogleFonts.notoSerifJp(
+                          color: Colors.grey[700], fontSize: 12),
                     ),
-                  ),
+                  ],
                 ],
               ),
             );
           }
+
           return RefreshIndicator(
             color: const Color(0xFFCC0000),
             backgroundColor: const Color(0xFF1A1A1A),
-            onRefresh: () async {
-              ref.invalidate(postsProvider);
-            },
+            onRefresh: () async => ref.invalidate(postsProvider),
             child: ListView.builder(
               padding: const EdgeInsets.symmetric(vertical: 8),
               itemCount: posts.length,
@@ -79,6 +111,45 @@ class FeedPage extends ConsumerWidget {
             ),
           );
         },
+      ),
+    );
+  }
+}
+
+class _Tab extends StatelessWidget {
+  const _Tab(
+      {required this.label, required this.selected, required this.onTap});
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+        decoration: BoxDecoration(
+          border: Border(
+            bottom: BorderSide(
+              color: selected
+                  ? const Color(0xFFCC0000)
+                  : Colors.transparent,
+              width: 2,
+            ),
+          ),
+        ),
+        child: Text(
+          label,
+          style: GoogleFonts.notoSerifJp(
+            fontSize: 13,
+            color: selected
+                ? const Color(0xFFEEEEEE)
+                : const Color(0xFF666666),
+            fontWeight:
+                selected ? FontWeight.w600 : FontWeight.normal,
+          ),
+        ),
       ),
     );
   }

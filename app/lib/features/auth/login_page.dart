@@ -1,4 +1,5 @@
-﻿import 'package:flutter/material.dart';
+﻿import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -25,6 +26,34 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     super.dispose();
   }
 
+  String _toJapanese(String error) {
+    if (error.contains('invalid-credential') || error.contains('wrong-password')) {
+      return 'メールアドレスまたはパスワードが違います';
+    }
+    if (error.contains('user-not-found')) return 'このメールアドレスは登録されていません';
+    if (error.contains('too-many-requests')) return 'しばらく時間をおいてから再試行してください';
+    if (error.contains('network-request-failed')) return 'ネットワークエラーが発生しました';
+    return error;
+  }
+
+  Future<void> _resetPassword() async {
+    final email = _emailCtrl.text.trim();
+    if (email.isEmpty || !email.contains('@')) {
+      setState(() => _error = 'メールアドレスを入力してからリセットしてください');
+      return;
+    }
+    try {
+      await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('パスワードリセットメールを送信しました')),
+        );
+      }
+    } catch (e) {
+      setState(() => _error = e.toString());
+    }
+  }
+
   Future<void> _signIn() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _error = null);
@@ -33,7 +62,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
           .read(authProvider.notifier)
           .signIn(_emailCtrl.text.trim(), _passwordCtrl.text);
     } catch (e) {
-      setState(() => _error = e.toString());
+      setState(() => _error = _toJapanese(e.toString()));
     }
   }
 
@@ -140,7 +169,22 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                             ),
                     ),
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 12),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton(
+                      onPressed: isLoading ? null : _resetPassword,
+                      child: Text(
+                        'パスワードを忘れた方',
+                        style: TextStyle(
+                          color: const Color(0xFF666666),
+                          fontSize: 12,
+                          fontFamily: GoogleFonts.notoSerifJp().fontFamily,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
                   TextButton(
                     onPressed: () => context.go('/register'),
                     child: Text(
@@ -150,6 +194,18 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                         fontSize: 13,
                         decoration: TextDecoration.underline,
                         decorationColor: const Color(0xFF888888),
+                        fontFamily: GoogleFonts.notoSerifJp().fontFamily,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  TextButton(
+                    onPressed: () => context.go('/feed'),
+                    child: Text(
+                      'ログインせずに読む',
+                      style: TextStyle(
+                        color: const Color(0xFF555555),
+                        fontSize: 12,
                         fontFamily: GoogleFonts.notoSerifJp().fontFamily,
                       ),
                     ),

@@ -1,10 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/user_model.dart';
 import '../repositories/auth_repository.dart';
-import '../repositories/mock/mock_auth_repository.dart';
+import '../repositories/firebase/firebase_auth_repository.dart';
 
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
-  return MockAuthRepository();
+  return FirebaseAuthRepository();
 });
 
 class AuthNotifier extends StateNotifier<AsyncValue<UserModel?>> {
@@ -21,17 +21,25 @@ class AuthNotifier extends StateNotifier<AsyncValue<UserModel?>> {
 
   Future<void> signIn(String email, String password) async {
     state = const AsyncValue.loading();
-    state = await AsyncValue.guard(
-      () => _repo.signIn(email, password),
-    );
+    try {
+      final user = await _repo.signIn(email, password);
+      state = AsyncValue.data(user);
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+      rethrow;
+    }
   }
 
   Future<void> signUp(
       String email, String password, String displayName) async {
     state = const AsyncValue.loading();
-    state = await AsyncValue.guard(
-      () => _repo.signUp(email, password, displayName),
-    );
+    try {
+      final user = await _repo.signUp(email, password, displayName);
+      state = AsyncValue.data(user);
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+      rethrow;
+    }
   }
 
   Future<void> signOut() async {

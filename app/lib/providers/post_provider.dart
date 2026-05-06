@@ -2,10 +2,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/comment_model.dart';
 import '../models/post_model.dart';
 import '../repositories/post_repository.dart';
-import '../repositories/mock/mock_post_repository.dart';
+import '../repositories/firebase/firestore_post_repository.dart';
 
 final postRepositoryProvider = Provider<PostRepository>((ref) {
-  return MockPostRepository();
+  return FirestorePostRepository();
 });
 
 final postsProvider = StreamProvider<List<PostModel>>((ref) {

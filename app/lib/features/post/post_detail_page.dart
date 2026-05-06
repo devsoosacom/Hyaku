@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import '../../models/post_model.dart';
@@ -304,69 +305,99 @@ class _PostDetailPageState extends ConsumerState<PostDetailPage> {
                   ),
                 ),
               ),
-              Container(
-                decoration: const BoxDecoration(
-                  color: Color(0xFF111111),
-                  border: Border(top: BorderSide(color: Color(0xFF2A2A2A))),
-                ),
-                padding: EdgeInsets.only(
-                  left: 16,
-                  right: 12,
-                  top: 10,
-                  bottom: MediaQuery.of(context).viewInsets.bottom + 10,
-                ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: _commentCtrl,
-                        style: GoogleFonts.notoSerifJp(
-                          fontSize: 14,
-                          color: const Color(0xFFEEEEEE),
+              if (user == null)
+                GestureDetector(
+                  onTap: () => context.push('/login'),
+                  child: Container(
+                    decoration: const BoxDecoration(
+                      color: Color(0xFF0F0F0F),
+                      border:
+                          Border(top: BorderSide(color: Color(0xFF2A2A2A))),
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 20, vertical: 14),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.login,
+                            color: Color(0xFF666666), size: 16),
+                        const SizedBox(width: 8),
+                        Text(
+                          'ログインしてコメントに参加する',
+                          style: GoogleFonts.notoSerifJp(
+                            fontSize: 13,
+                            color: const Color(0xFF888888),
+                          ),
                         ),
-                        decoration: InputDecoration(
-                          hintText: 'コメントを追加...',
-                          hintStyle: GoogleFonts.notoSerifJp(
+                      ],
+                    ),
+                  ),
+                )
+              else
+                Container(
+                  decoration: const BoxDecoration(
+                    color: Color(0xFF111111),
+                    border:
+                        Border(top: BorderSide(color: Color(0xFF2A2A2A))),
+                  ),
+                  padding: EdgeInsets.only(
+                    left: 16,
+                    right: 12,
+                    top: 10,
+                    bottom: MediaQuery.of(context).viewInsets.bottom + 10,
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _commentCtrl,
+                          style: GoogleFonts.notoSerifJp(
                             fontSize: 14,
-                            color: const Color(0xFF555555),
+                            color: const Color(0xFFEEEEEE),
                           ),
-                          filled: true,
-                          fillColor: const Color(0xFF1A1A1A),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(20),
-                            borderSide: BorderSide.none,
+                          decoration: InputDecoration(
+                            hintText: 'コメントを追加...',
+                            hintStyle: GoogleFonts.notoSerifJp(
+                              fontSize: 14,
+                              color: const Color(0xFF555555),
+                            ),
+                            filled: true,
+                            fillColor: const Color(0xFF1A1A1A),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(20),
+                              borderSide: BorderSide.none,
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 10),
                           ),
-                          contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 10),
+                          textInputAction: TextInputAction.send,
+                          onSubmitted: (_) => _submitComment(),
+                          maxLines: null,
                         ),
-                        textInputAction: TextInputAction.send,
-                        onSubmitted: (_) => _submitComment(),
-                        maxLines: null,
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    GestureDetector(
-                      onTap: _submitting ? null : _submitComment,
-                      child: Container(
-                        width: 40,
-                        height: 40,
-                        decoration: const BoxDecoration(
-                          color: Color(0xFFCC0000),
-                          shape: BoxShape.circle,
+                      const SizedBox(width: 8),
+                      GestureDetector(
+                        onTap: _submitting ? null : _submitComment,
+                        child: Container(
+                          width: 40,
+                          height: 40,
+                          decoration: const BoxDecoration(
+                            color: Color(0xFFCC0000),
+                            shape: BoxShape.circle,
+                          ),
+                          child: _submitting
+                              ? const Padding(
+                                  padding: EdgeInsets.all(10),
+                                  child: CircularProgressIndicator(
+                                      color: Colors.white, strokeWidth: 2),
+                                )
+                              : const Icon(Icons.send,
+                                  color: Colors.white, size: 18),
                         ),
-                        child: _submitting
-                            ? const Padding(
-                                padding: EdgeInsets.all(10),
-                                child: CircularProgressIndicator(
-                                    color: Colors.white, strokeWidth: 2),
-                              )
-                            : const Icon(Icons.send,
-                                color: Colors.white, size: 18),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
             ],
           ),
         );

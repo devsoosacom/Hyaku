@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import '../../../models/post_model.dart';
 import '../../../providers/auth_provider.dart';
+import '../../../providers/follow_provider.dart';
 import '../../../providers/post_provider.dart';
 
 class PostCard extends ConsumerWidget {
@@ -16,6 +17,10 @@ class PostCard extends ConsumerWidget {
     final user = ref.watch(currentUserProvider);
     final isLiked = user != null && post.isLikedBy(user.id);
     final isBookmarked = user != null && post.isBookmarkedBy(user.id);
+    final isOwnPost = user?.id == post.userId;
+    final isFollowing = user != null && !isOwnPost
+        ? ref.watch(isFollowingProvider('${user.id}::${post.userId}'))
+        : false;
 
     return GestureDetector(
       onTap: () => context.push('/post/${post.id}'),
@@ -67,6 +72,37 @@ class PostCard extends ConsumerWidget {
                       ],
                     ),
                   ),
+                  if (user != null && !isOwnPost)
+                    GestureDetector(
+                      onTap: () => ref
+                          .read(followNotifierProvider.notifier)
+                          .toggle(user.id, post.userId, isFollowing),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: isFollowing
+                              ? Colors.transparent
+                              : const Color(0xFFCC0000),
+                          borderRadius: BorderRadius.circular(3),
+                          border: Border.all(
+                            color: isFollowing
+                                ? const Color(0xFF444444)
+                                : const Color(0xFFCC0000),
+                          ),
+                        ),
+                        child: Text(
+                          isFollowing ? 'フォロー中' : 'フォロー',
+                          style: GoogleFonts.notoSerifJp(
+                            fontSize: 10,
+                            color: isFollowing
+                                ? const Color(0xFF888888)
+                                : Colors.white,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
                 ],
               ),
             ),
@@ -138,7 +174,7 @@ class PostCard extends ConsumerWidget {
                         : const Color(0xFF666666),
                     label: '${post.likeCount}',
                     onTap: user == null
-                        ? null
+                        ? () => _showLoginRequired(context)
                         : () => ref
                             .read(postActionsProvider.notifier)
                             .toggleLike(post, user.id),
@@ -150,23 +186,24 @@ class PostCard extends ConsumerWidget {
                     onTap: () => context.push('/post/${post.id}'),
                   ),
                   const Spacer(),
-                  if (user != null)
-                    IconButton(
-                      icon: Icon(
-                        isBookmarked
-                            ? Icons.bookmark
-                            : Icons.bookmark_border,
-                        color: isBookmarked
-                            ? const Color(0xFFCC0000)
-                            : const Color(0xFF444444),
-                        size: 18,
-                      ),
-                      onPressed: () => ref
-                          .read(postActionsProvider.notifier)
-                          .toggleBookmark(post, user.id),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
+                  IconButton(
+                    icon: Icon(
+                      isBookmarked
+                          ? Icons.bookmark
+                          : Icons.bookmark_border,
+                      color: isBookmarked
+                          ? const Color(0xFFCC0000)
+                          : const Color(0xFF444444),
+                      size: 18,
                     ),
+                    onPressed: user == null
+                        ? () => _showLoginRequired(context)
+                        : () => ref
+                            .read(postActionsProvider.notifier)
+                            .toggleBookmark(post, user.id),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  ),
                   if (user?.id == post.userId) ...[
                     const SizedBox(width: 8),
                     IconButton(
@@ -181,6 +218,22 @@ class PostCard extends ConsumerWidget {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  void _showLoginRequired(BuildContext context) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          'ログインすると参加できます',
+          style: GoogleFonts.notoSerifJp(fontSize: 13),
+        ),
+        action: SnackBarAction(
+          label: 'ログイン',
+          textColor: const Color(0xFFCC0000),
+          onPressed: () => context.push('/login'),
         ),
       ),
     );
