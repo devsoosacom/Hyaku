@@ -2,10 +2,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/comment_model.dart';
 import '../models/post_model.dart';
 import '../repositories/post_repository.dart';
-import '../repositories/mock/mock_post_repository.dart';
+import '../repositories/firebase/firestore_post_repository.dart';
 
 final postRepositoryProvider = Provider<PostRepository>((ref) {
-  return MockPostRepository();
+  return FirestorePostRepository();
 });
 
 final postsProvider = StreamProvider<List<PostModel>>((ref) {
@@ -63,6 +63,7 @@ class PostActionsNotifier extends StateNotifier<bool> {
     required String title,
     required String content,
     List<String> tags = const [],
+    String? authorPhotoUrl,
   }) async {
     state = true;
     try {
@@ -72,6 +73,7 @@ class PostActionsNotifier extends StateNotifier<bool> {
         title: title,
         content: content,
         tags: tags,
+        authorPhotoUrl: authorPhotoUrl,
       );
     } finally {
       state = false;
@@ -110,6 +112,10 @@ class PostActionsNotifier extends StateNotifier<bool> {
 
   Future<void> deletePost(String postId, String userId) async {
     await _repo.deletePost(postId, userId);
+  }
+
+  Future<void> deleteComment(String postId, String commentId) async {
+    await _repo.deleteComment(postId, commentId);
   }
 }
 

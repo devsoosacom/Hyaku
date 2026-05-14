@@ -229,4 +229,12 @@ class MockPostRepository implements PostRepository {
         _posts.where((p) => !(p.id == postId && p.userId == userId)).toList();
     _notifyPosts();
   }
+
+  @override
+  Future<void> deleteComment(String postId, String commentId) async {
+    final list = _comments[postId];
+    if (list == null) return;
+    _comments[postId] = list.where((c) => c.id != commentId).toList();
+    _commentControllers[postId]?.add(_comments[postId]!);
+  }
 }

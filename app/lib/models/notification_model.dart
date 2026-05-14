@@ -1,9 +1,10 @@
-enum NotificationType { like, comment }
+enum NotificationType { like, comment, follow }
 
 class NotificationModel {
   final String id;
   final String targetUserId;
   final NotificationType type;
+  final String actorId;
   final String actorName;
   final String postTitle;
   final String postId;
@@ -14,6 +15,7 @@ class NotificationModel {
     required this.id,
     required this.targetUserId,
     required this.type,
+    required this.actorId,
     required this.actorName,
     required this.postTitle,
     required this.postId,
@@ -26,6 +28,7 @@ class NotificationModel {
       id: id,
       targetUserId: targetUserId,
       type: type,
+      actorId: actorId,
       actorName: actorName,
       postTitle: postTitle,
       postId: postId,
@@ -40,6 +43,8 @@ class NotificationModel {
         return '$actorName があなたの「$postTitle」にいいねしました';
       case NotificationType.comment:
         return '$actorName があなたの「$postTitle」にコメントしました';
+      case NotificationType.follow:
+        return '$actorName があなたをフォローしました';
     }
   }
 }

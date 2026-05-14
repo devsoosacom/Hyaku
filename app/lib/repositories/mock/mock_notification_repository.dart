@@ -13,6 +13,7 @@ class MockNotificationRepository implements NotificationRepository {
         id: 'notif-${userId}-1',
         targetUserId: userId,
         type: NotificationType.like,
+        actorId: 'seed-user',
         actorName: '怪談師 鬼灯',
         postTitle: 'あなたの怪談',
         postId: 'seed-1',
@@ -22,6 +23,7 @@ class MockNotificationRepository implements NotificationRepository {
         id: 'notif-${userId}-2',
         targetUserId: userId,
         type: NotificationType.comment,
+        actorId: 'seed-user2',
         actorName: '夜語り べる',
         postTitle: 'あなたの怪談',
         postId: 'seed-1',
@@ -31,30 +33,11 @@ class MockNotificationRepository implements NotificationRepository {
         id: 'notif-${userId}-3',
         targetUserId: userId,
         type: NotificationType.like,
+        actorId: 'seed-user3',
         actorName: '闇語り ゆらぎ',
         postTitle: 'あなたの怪談',
         postId: 'seed-2',
         createdAt: now.subtract(const Duration(hours: 3)),
-        isRead: true,
-      ),
-      NotificationModel(
-        id: 'notif-${userId}-4',
-        targetUserId: userId,
-        type: NotificationType.comment,
-        actorName: '語り部 とおの',
-        postTitle: 'あなたの怪談',
-        postId: 'seed-2',
-        createdAt: now.subtract(const Duration(hours: 6)),
-        isRead: true,
-      ),
-      NotificationModel(
-        id: 'notif-${userId}-5',
-        targetUserId: userId,
-        type: NotificationType.like,
-        actorName: '夜半 かなえ',
-        postTitle: 'あなたの怪談',
-        postId: 'seed-1',
-        createdAt: now.subtract(const Duration(days: 1)),
         isRead: true,
       ),
     ];
@@ -81,16 +64,20 @@ class MockNotificationRepository implements NotificationRepository {
   }
 
   @override
-  int getUnreadCount(String userId) {
-    return (_notifications[userId] ?? []).where((n) => !n.isRead).length;
+  Future<void> markOneRead(String notifId) async {
+    for (final userId in _notifications.keys) {
+      final list = _notifications[userId]!;
+      final idx = list.indexWhere((n) => n.id == notifId);
+      if (idx != -1) {
+        list[idx] = list[idx].copyWith(isRead: true);
+        _controllers[userId]?.add(list);
+        break;
+      }
+    }
   }
 
-  void addNotification(NotificationModel notification) {
-    final userId = notification.targetUserId;
-    _notifications[userId] = [
-      notification,
-      ...(_notifications[userId] ?? []),
-    ];
-    _controllers[userId]?.add(_notifications[userId]!);
+  @override
+  int getUnreadCount(String userId) {
+    return (_notifications[userId] ?? []).where((n) => !n.isRead).length;
   }
 }

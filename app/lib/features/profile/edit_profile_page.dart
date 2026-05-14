@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../providers/auth_provider.dart';
+import '../../widgets/user_avatar.dart';
 
 class EditProfilePage extends ConsumerStatefulWidget {
   const EditProfilePage({super.key});
@@ -16,6 +18,7 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
   late TextEditingController _bioCtrl;
   final _formKey = GlobalKey<FormState>();
   bool _loading = false;
+  bool _photoUploading = false;
 
   @override
   void initState() {
@@ -30,6 +33,35 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
     _nameCtrl.dispose();
     _bioCtrl.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickAndUploadPhoto() async {
+    final picker = ImagePicker();
+    final xFile = await picker.pickImage(
+      source: ImageSource.gallery,
+    );
+    if (xFile == null) return;
+
+    setState(() => _photoUploading = true);
+    try {
+      final bytes = await xFile.readAsBytes();
+      await ref
+          .read(authProvider.notifier)
+          .updateProfilePhoto(bytes, xFile.name);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('アイコン画像を更新しました')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('画像のアップロードに失敗しました: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _photoUploading = false);
+    }
   }
 
   Future<void> _save() async {
@@ -59,6 +91,8 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
 
   @override
   Widget build(BuildContext context) {
+    final user = ref.watch(currentUserProvider);
+
     return Scaffold(
       backgroundColor: const Color(0xFF0A0A0A),
       appBar: AppBar(
@@ -104,6 +138,60 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
           padding: const EdgeInsets.all(20),
           children: [
             const SizedBox(height: 16),
+            // ─── アイコン画像 ───
+            Center(
+              child: GestureDetector(
+                onTap: _photoUploading ? null : _pickAndUploadPhoto,
+                child: Stack(
+                  alignment: Alignment.bottomRight,
+                  children: [
+                    UserAvatar(
+                      photoUrl: user?.photoUrl,
+                      displayName: user?.displayName ?? '',
+                      radius: 48,
+                      fontSize: 32,
+                    ),
+                    if (_photoUploading)
+                      Positioned.fill(
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(
+                            color: Colors.black54,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Center(
+                            child: CircularProgressIndicator(
+                              color: Color(0xFFCC0000),
+                              strokeWidth: 2,
+                            ),
+                          ),
+                        ),
+                      )
+                    else
+                      Container(
+                        width: 28,
+                        height: 28,
+                        decoration: const BoxDecoration(
+                          color: Color(0xFFCC0000),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.camera_alt,
+                            color: Colors.white, size: 15),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Center(
+              child: Text(
+                'タップして画像を変更',
+                style: GoogleFonts.notoSerifJp(
+                  fontSize: 11,
+                  color: const Color(0xFF666666),
+                ),
+              ),
+            ),
+            const SizedBox(height: 28),
             _Label('表示名'),
             const SizedBox(height: 8),
             TextFormField(

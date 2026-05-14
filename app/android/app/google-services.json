@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "215836366665",
+    "project_id": "hyaku-35692",
+    "storage_bucket": "hyaku-35692.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:215836366665:android:4ff96f704a9aa79602ec98",
+        "android_client_info": {
+          "package_name": "com.hyaku.hyaku"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCXMzkrvrme72TCojexWzVeU1LouEtYRUM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

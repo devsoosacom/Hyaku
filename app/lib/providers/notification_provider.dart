@@ -1,10 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/notification_model.dart';
 import '../repositories/notification_repository.dart';
-import '../repositories/mock/mock_notification_repository.dart';
+import '../repositories/firebase/firestore_notification_repository.dart';
 
 final notificationRepositoryProvider =
-    Provider<NotificationRepository>((ref) => MockNotificationRepository());
+    Provider<NotificationRepository>((ref) => FirestoreNotificationRepository());
 
 final notificationsProvider =
     StreamProvider.family<List<NotificationModel>, String>((ref, userId) {

@@ -3,7 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
+import '../../models/post_model.dart';
 import '../../providers/auth_provider.dart';
+import '../../widgets/user_avatar.dart';
+import '../../providers/follow_provider.dart';
 import '../../providers/notification_provider.dart';
 import '../../providers/post_provider.dart';
 
@@ -18,6 +21,8 @@ class ProfilePage extends ConsumerWidget {
     final userPostsAsync = ref.watch(userPostsProvider(user.id));
     final bookmarkedAsync = ref.watch(bookmarkedPostsProvider(user.id));
     final unreadCount = ref.watch(unreadCountProvider(user.id));
+    final followersAsync = ref.watch(followersProvider(user.id));
+    final followingAsync = ref.watch(followingProvider(user.id));
 
     return Scaffold(
       backgroundColor: const Color(0xFF0A0A0A),
@@ -80,17 +85,11 @@ class ProfilePage extends ConsumerWidget {
         children: [
           const SizedBox(height: 32),
           Center(
-            child: CircleAvatar(
+            child: UserAvatar(
+              photoUrl: user.photoUrl,
+              displayName: user.displayName,
               radius: 44,
-              backgroundColor: const Color(0xFF2A2A2A),
-              child: Text(
-                user.displayName.isNotEmpty ? user.displayName[0] : '?',
-                style: GoogleFonts.notoSerifJp(
-                  fontSize: 32,
-                  color: const Color(0xFFCC0000),
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
+              fontSize: 32,
             ),
           ),
           const SizedBox(height: 16),
@@ -149,15 +148,22 @@ class ProfilePage extends ConsumerWidget {
                 children: [
                   _Stat('${posts.length}', '怪談'),
                   _divider(),
-                  _Stat(
-                    posts.fold(0, (s, p) => s + p.likeCount).toString(),
-                    '累計いいね',
+                  followersAsync.when(
+                    data: (s) => GestureDetector(
+                      onTap: () => context.push('/followers/${user.id}'),
+                      child: _Stat('${s.length}', 'フォロワー'),
+                    ),
+                    loading: () => _Stat('-', 'フォロワー'),
+                    error: (_, __) => _Stat('0', 'フォロワー'),
                   ),
                   _divider(),
-                  bookmarkedAsync.when(
-                    data: (bm) => _Stat('${bm.length}', '保存済み'),
-                    loading: () => _Stat('-', '保存済み'),
-                    error: (_, __) => _Stat('0', '保存済み'),
+                  followingAsync.when(
+                    data: (s) => GestureDetector(
+                      onTap: () => context.push('/following/${user.id}'),
+                      child: _Stat('${s.length}', 'フォロー中'),
+                    ),
+                    loading: () => _Stat('-', 'フォロー中'),
+                    error: (_, __) => _Stat('0', 'フォロー中'),
                   ),
                 ],
               ),
@@ -177,9 +183,8 @@ class ProfilePage extends ConsumerWidget {
               return Column(
                 children: posts
                     .map((p) => _PostTile(
-                          title: p.title,
+                          post: p,
                           date: DateFormat('yyyy年MM月dd日').format(p.createdAt),
-                          likeCount: p.likeCount,
                         ))
                     .toList(),
               );
@@ -199,9 +204,8 @@ class ProfilePage extends ConsumerWidget {
               return Column(
                 children: posts
                     .map((p) => _PostTile(
-                          title: p.title,
+                          post: p,
                           date: DateFormat('yyyy年MM月dd日').format(p.createdAt),
-                          likeCount: p.likeCount,
                           isBookmark: true,
                         ))
                     .toList(),
@@ -242,27 +246,29 @@ class ProfilePage extends ConsumerWidget {
   Future<void> _confirmSignOut(BuildContext context, WidgetRef ref) async {
     final ok = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         backgroundColor: const Color(0xFF1A1A1A),
         title: const Text('ログアウトしますか？',
             style: TextStyle(color: Color(0xFFEEEEEE))),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context, false),
+            onPressed: () => Navigator.pop(dialogContext, false),
             child: const Text('キャンセル',
                 style: TextStyle(color: Color(0xFF888888))),
           ),
           TextButton(
-            onPressed: () => Navigator.pop(context, true),
+            onPressed: () => Navigator.pop(dialogContext, true),
             child: const Text('ログアウト',
                 style: TextStyle(color: Color(0xFFCC0000))),
           ),
         ],
       ),
     );
-    if (ok == true) {
-      await ref.read(authProvider.notifier).signOut();
-    }
+    if (ok != true) return;
+
+    final router = GoRouter.of(context);
+    await ref.read(authProvider.notifier).signOut();
+    router.go('/login');
   }
 }
 
@@ -334,70 +340,65 @@ class _EmptyMessage extends StatelessWidget {
 
 class _PostTile extends StatelessWidget {
   const _PostTile({
-    required this.title,
+    required this.post,
     required this.date,
-    required this.likeCount,
     this.isBookmark = false,
   });
-  final String title;
+  final PostModel post;
   final String date;
-  final int likeCount;
   final bool isBookmark;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: const Color(0xFF111111),
-        borderRadius: BorderRadius.circular(4),
-        border: Border.all(color: const Color(0xFF222222)),
-      ),
-      child: Row(
-        children: [
-          if (isBookmark)
-            const Padding(
-              padding: EdgeInsets.only(right: 10),
-              child: Icon(Icons.bookmark,
-                  color: Color(0xFFCC0000), size: 14),
-            ),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: GoogleFonts.notoSerifJp(
-                    fontSize: 14,
-                    color: const Color(0xFFDDDDDD),
-                    fontWeight: FontWeight.w600,
+    return GestureDetector(
+      onTap: () => context.push('/post/${post.id}'),
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: const Color(0xFF111111),
+          borderRadius: BorderRadius.circular(4),
+          border: Border.all(color: const Color(0xFF222222)),
+        ),
+        child: Row(
+          children: [
+            if (isBookmark)
+              const Padding(
+                padding: EdgeInsets.only(right: 10),
+                child: Icon(Icons.bookmark, color: Color(0xFFCC0000), size: 14),
+              ),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    post.title,
+                    style: GoogleFonts.notoSerifJp(
+                      fontSize: 14,
+                      color: const Color(0xFFDDDDDD),
+                      fontWeight: FontWeight.w600,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  date,
-                  style: const TextStyle(
-                      fontSize: 11, color: Color(0xFF666666)),
-                ),
+                  const SizedBox(height: 2),
+                  Text(date,
+                      style: const TextStyle(
+                          fontSize: 11, color: Color(0xFF666666))),
+                ],
+              ),
+            ),
+            Row(
+              children: [
+                const Icon(Icons.favorite, color: Color(0xFFCC0000), size: 14),
+                const SizedBox(width: 4),
+                Text('${post.likeCount}',
+                    style: const TextStyle(
+                        color: Color(0xFF888888), fontSize: 12)),
               ],
             ),
-          ),
-          Row(
-            children: [
-              const Icon(Icons.favorite,
-                  color: Color(0xFFCC0000), size: 14),
-              const SizedBox(width: 4),
-              Text(
-                '$likeCount',
-                style: const TextStyle(
-                    color: Color(0xFF888888), fontSize: 12),
-              ),
-            ],
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

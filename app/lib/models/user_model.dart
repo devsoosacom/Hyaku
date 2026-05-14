@@ -3,6 +3,7 @@ class UserModel {
   final String displayName;
   final String email;
   final String? bio;
+  final String? photoUrl;
   final int postCount;
   final DateTime createdAt;
 
@@ -11,6 +12,7 @@ class UserModel {
     required this.displayName,
     required this.email,
     this.bio,
+    this.photoUrl,
     this.postCount = 0,
     required this.createdAt,
   });
@@ -18,6 +20,7 @@ class UserModel {
   UserModel copyWith({
     String? displayName,
     String? bio,
+    String? photoUrl,
     int? postCount,
   }) {
     return UserModel(
@@ -25,6 +28,7 @@ class UserModel {
       displayName: displayName ?? this.displayName,
       email: email,
       bio: bio ?? this.bio,
+      photoUrl: photoUrl ?? this.photoUrl,
       postCount: postCount ?? this.postCount,
       createdAt: createdAt,
     );

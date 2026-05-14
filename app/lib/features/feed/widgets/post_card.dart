@@ -3,9 +3,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
+import 'package:share_plus/share_plus.dart';
 import '../../../models/post_model.dart';
 import '../../../providers/auth_provider.dart';
+import '../../../providers/follow_provider.dart';
 import '../../../providers/post_provider.dart';
+import '../../../widgets/user_avatar.dart';
+
+const _adminUid = 'dRFL5GfO15a0fRbfmfS6uQIshvp1';
 
 class PostCard extends ConsumerWidget {
   const PostCard({super.key, required this.post});
@@ -16,6 +21,14 @@ class PostCard extends ConsumerWidget {
     final user = ref.watch(currentUserProvider);
     final isLiked = user != null && post.isLikedBy(user.id);
     final isBookmarked = user != null && post.isBookmarkedBy(user.id);
+    final isOwnPost = user?.id == post.userId;
+    final canDelete = isOwnPost || user?.id == _adminUid;
+    // 古い投稿で authorPhotoUrl がない場合、自分の投稿なら現在の photoUrl で補完
+    final displayPhotoUrl = post.authorPhotoUrl ??
+        (isOwnPost ? user?.photoUrl : null);
+    final isFollowing = user != null && !isOwnPost
+        ? ref.watch(isFollowingProvider('${user.id}::${post.userId}'))
+        : false;
 
     return GestureDetector(
       onTap: () => context.push('/post/${post.id}'),
@@ -33,16 +46,13 @@ class PostCard extends ConsumerWidget {
               padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
               child: Row(
                 children: [
-                  CircleAvatar(
-                    radius: 16,
-                    backgroundColor: const Color(0xFF2A2A2A),
-                    child: Text(
-                      post.authorName.isNotEmpty ? post.authorName[0] : '?',
-                      style: GoogleFonts.notoSerifJp(
-                        fontSize: 13,
-                        color: const Color(0xFFCC0000),
-                        fontWeight: FontWeight.w700,
-                      ),
+                  GestureDetector(
+                    onTap: () => context.push('/user/${post.userId}'),
+                    child: UserAvatar(
+                      photoUrl: displayPhotoUrl,
+                      displayName: post.authorName,
+                      radius: 16,
+                      fontSize: 13,
                     ),
                   ),
                   const SizedBox(width: 10),
@@ -67,6 +77,37 @@ class PostCard extends ConsumerWidget {
                       ],
                     ),
                   ),
+                  if (user != null && !isOwnPost)
+                    GestureDetector(
+                      onTap: () => ref
+                          .read(followNotifierProvider.notifier)
+                          .toggle(user.id, post.userId, isFollowing),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: isFollowing
+                              ? Colors.transparent
+                              : const Color(0xFFCC0000),
+                          borderRadius: BorderRadius.circular(3),
+                          border: Border.all(
+                            color: isFollowing
+                                ? const Color(0xFF444444)
+                                : const Color(0xFFCC0000),
+                          ),
+                        ),
+                        child: Text(
+                          isFollowing ? 'フォロー中' : 'フォロー',
+                          style: GoogleFonts.notoSerifJp(
+                            fontSize: 10,
+                            color: isFollowing
+                                ? const Color(0xFF888888)
+                                : Colors.white,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
                 ],
               ),
             ),
@@ -138,7 +179,7 @@ class PostCard extends ConsumerWidget {
                         : const Color(0xFF666666),
                     label: '${post.likeCount}',
                     onTap: user == null
-                        ? null
+                        ? () => _showLoginRequired(context)
                         : () => ref
                             .read(postActionsProvider.notifier)
                             .toggleLike(post, user.id),
@@ -150,31 +191,38 @@ class PostCard extends ConsumerWidget {
                     onTap: () => context.push('/post/${post.id}'),
                   ),
                   const Spacer(),
-                  if (user != null)
-                    IconButton(
-                      icon: Icon(
-                        isBookmarked
-                            ? Icons.bookmark
-                            : Icons.bookmark_border,
-                        color: isBookmarked
-                            ? const Color(0xFFCC0000)
-                            : const Color(0xFF444444),
-                        size: 18,
-                      ),
-                      onPressed: () => ref
-                          .read(postActionsProvider.notifier)
-                          .toggleBookmark(post, user.id),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
+                  IconButton(
+                    icon: const Icon(Icons.share_outlined,
+                        color: Color(0xFF444444), size: 18),
+                    onPressed: () => _sharePost(),
+                    padding: const EdgeInsets.all(8),
+                    visualDensity: VisualDensity.compact,
+                  ),
+                  IconButton(
+                    icon: Icon(
+                      isBookmarked
+                          ? Icons.bookmark
+                          : Icons.bookmark_border,
+                      color: isBookmarked
+                          ? const Color(0xFFCC0000)
+                          : const Color(0xFF444444),
+                      size: 18,
                     ),
-                  if (user?.id == post.userId) ...[
-                    const SizedBox(width: 8),
+                    onPressed: user == null
+                        ? () => _showLoginRequired(context)
+                        : () => ref
+                            .read(postActionsProvider.notifier)
+                            .toggleBookmark(post, user.id),
+                    padding: const EdgeInsets.all(8),
+                    visualDensity: VisualDensity.compact,
+                  ),
+                  if (canDelete) ...[
                     IconButton(
                       icon: const Icon(Icons.delete_outline,
                           color: Color(0xFF444444), size: 18),
                       onPressed: () => _confirmDelete(context, ref),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
+                      padding: const EdgeInsets.all(8),
+                      visualDensity: VisualDensity.compact,
                     ),
                   ],
                 ],
@@ -186,12 +234,35 @@ class PostCard extends ConsumerWidget {
     );
   }
 
+  void _sharePost() {
+    final preview = post.content.length > 100
+        ? '${post.content.substring(0, 100)}…'
+        : post.content;
+    Share.share('【${post.title}】\n$preview\n\n#百物語 #怪談');
+  }
+
+  void _showLoginRequired(BuildContext context) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          'ログインすると参加できます',
+          style: GoogleFonts.notoSerifJp(fontSize: 13),
+        ),
+        action: SnackBarAction(
+          label: 'ログイン',
+          textColor: const Color(0xFFCC0000),
+          onPressed: () => context.push('/login'),
+        ),
+      ),
+    );
+  }
+
   Future<void> _confirmDelete(BuildContext context, WidgetRef ref) async {
     final user = ref.read(currentUserProvider);
     if (user == null) return;
     final ok = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         backgroundColor: const Color(0xFF1A1A1A),
         title: const Text('削除しますか？',
             style: TextStyle(color: Color(0xFFEEEEEE))),
@@ -199,20 +270,29 @@ class PostCard extends ConsumerWidget {
             style: TextStyle(color: Color(0xFF888888))),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context, false),
+            onPressed: () => Navigator.pop(dialogContext, false),
             child: const Text('キャンセル',
                 style: TextStyle(color: Color(0xFF888888))),
           ),
           TextButton(
-            onPressed: () => Navigator.pop(context, true),
+            onPressed: () => Navigator.pop(dialogContext, true),
             child: const Text('削除',
                 style: TextStyle(color: Color(0xFFCC0000))),
           ),
         ],
       ),
     );
-    if (ok == true) {
-      ref.read(postActionsProvider.notifier).deletePost(post.id, user.id);
+    if (ok != true) return;
+
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      await ref.read(postActionsProvider.notifier).deletePost(post.id, user.id);
+    } catch (_) {
+      if (context.mounted) {
+        messenger.showSnackBar(
+          const SnackBar(content: Text('削除に失敗しました')),
+        );
+      }
     }
   }
 }
