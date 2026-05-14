@@ -183,6 +183,16 @@ def main():
         log(f'投稿成功: postId={post_id} title={title}')
         print(f'\n投稿完了: https://hyaku-35692.web.app/post/{post_id}')
 
+        # X(Twitter) への自動投稿
+        try:
+            import subprocess
+            subprocess.run(
+                [sys.executable, r'O:\Hyaku\x_post.py'],
+                check=False, timeout=30
+            )
+        except Exception as xe:
+            log(f'X投稿スキップ: {xe}')
+
     except Exception as e:
         log(f'投稿失敗: {e}')
         sys.exit(1)
