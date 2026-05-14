@@ -316,7 +316,10 @@ class _PostDetailPageState extends ConsumerState<PostDetailPage> {
                       ),
                       const SizedBox(height: 16),
                       MarkdownBody(
-                        data: post.content,
+                        data: post.content
+                            .split('\n')
+                            .where((l) => !l.trimLeft().startsWith('#'))
+                            .join('\n'),
                         styleSheet: MarkdownStyleSheet(
                           p: GoogleFonts.notoSerifJp(
                             fontSize: 15,
