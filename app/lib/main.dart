@@ -2,13 +2,15 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_web_plugins/flutter_web_plugins.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'core/theme/app_theme.dart';
 import 'core/router/app_router.dart';
 import 'firebase_options.dart';
+import 'utils/url_strategy_stub.dart'
+    if (dart.library.js_interop) 'utils/url_strategy_web.dart';
 
 void main() async {
-  usePathUrlStrategy();
+  configureUrlStrategy();
   WidgetsFlutterBinding.ensureInitialized();
 
   // Release mode でもブラウザコンソールにエラーを出力する
@@ -43,6 +45,9 @@ void main() async {
   }
 
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  if (!kIsWeb) {
+    await MobileAds.instance.initialize();
+  }
   runApp(const ProviderScope(child: HyakuApp()));
 }
 
