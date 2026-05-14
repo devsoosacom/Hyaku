@@ -7,4 +7,5 @@ abstract class AuthRepository {
   Future<UserModel> signUp(String email, String password, String displayName);
   Future<void> signOut();
   Future<void> updateProfile({String? displayName, String? bio});
+  Future<String> updateProfilePhoto(List<int> bytes, String fileName);
 }

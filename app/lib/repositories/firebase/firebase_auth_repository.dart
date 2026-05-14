@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'dart:typed_data';
+import 'dart:ui' as ui;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../models/user_model.dart';
@@ -21,7 +24,6 @@ class FirebaseAuthRepository implements AuthRepository {
         _cached = model;
         return model;
       } catch (e) {
-        // Firestore失敗でもFirebase Authが認証済みなら基本情報で返す
         final basic = UserModel(
           id: user.uid,
           displayName: user.displayName ?? 'ユーザー',
@@ -46,6 +48,7 @@ class FirebaseAuthRepository implements AuthRepository {
         displayName: d['displayName'] ?? '',
         email: d['email'] ?? '',
         bio: d['bio'] as String?,
+        photoUrl: d['photoUrl'] as String?,
         createdAt: (d['createdAt'] as Timestamp).toDate(),
       );
     }
@@ -60,6 +63,7 @@ class FirebaseAuthRepository implements AuthRepository {
       'displayName': user.displayName,
       'email': user.email,
       'bio': null,
+      'photoUrl': null,
       'createdAt': Timestamp.fromDate(now),
     });
     return user;
@@ -95,6 +99,7 @@ class FirebaseAuthRepository implements AuthRepository {
       'displayName': displayName,
       'email': email,
       'bio': null,
+      'photoUrl': null,
       'createdAt': Timestamp.fromDate(now),
     });
     _cached = user;
@@ -124,5 +129,34 @@ class FirebaseAuthRepository implements AuthRepository {
         bio: bio,
       );
     }
+  }
+
+  @override
+  Future<String> updateProfilePhoto(List<int> bytes, String fileName) async {
+    final uid = _auth.currentUser?.uid;
+    if (uid == null) throw Exception('未ログイン');
+
+    // Resize to 256px and encode as base64 PNG data URL (no Firebase Storage / CORS needed)
+    final dataUrl = await _toResizedDataUrl(Uint8List.fromList(bytes));
+
+    await _db.collection('users').doc(uid).update({'photoUrl': dataUrl});
+
+    if (_cached != null) {
+      _cached = _cached!.copyWith(photoUrl: dataUrl);
+    }
+    return dataUrl;
+  }
+
+  static Future<String> _toResizedDataUrl(Uint8List raw) async {
+    final codec = await ui.instantiateImageCodec(
+      raw,
+      targetWidth: 256,
+      targetHeight: 256,
+    );
+    final frame = await codec.getNextFrame();
+    final byteData =
+        await frame.image.toByteData(format: ui.ImageByteFormat.png);
+    final pngBytes = byteData!.buffer.asUint8List();
+    return 'data:image/png;base64,${base64Encode(pngBytes)}';
   }
 }

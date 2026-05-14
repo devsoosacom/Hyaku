@@ -35,6 +35,12 @@ class _PostPageState extends ConsumerState<PostPage> {
       );
       return;
     }
+    if (title.length > 60) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('タイトルは60文字以内で入力してください')),
+      );
+      return;
+    }
     final user = ref.read(currentUserProvider);
     if (user == null) {
       context.go('/login');
@@ -46,6 +52,7 @@ class _PostPageState extends ConsumerState<PostPage> {
           title: title,
           content: body,
           tags: _selectedTags.toList(),
+          authorPhotoUrl: user.photoUrl,
         );
     if (mounted) {
       _titleCtrl.clear();
@@ -114,6 +121,7 @@ class _PostPageState extends ConsumerState<PostPage> {
             TextField(
               controller: _titleCtrl,
               onChanged: (_) => setState(() {}),
+              maxLength: 60,
               style: GoogleFonts.notoSerifJp(
                 fontSize: 20,
                 fontWeight: FontWeight.w700,
@@ -128,6 +136,8 @@ class _PostPageState extends ConsumerState<PostPage> {
                   fontWeight: FontWeight.w700,
                 ),
                 border: InputBorder.none,
+                counterStyle: const TextStyle(
+                    color: Color(0xFF555555), fontSize: 11),
               ),
               textInputAction: TextInputAction.next,
             ),

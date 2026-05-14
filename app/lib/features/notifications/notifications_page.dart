@@ -92,65 +92,96 @@ class NotificationsPage extends ConsumerWidget {
   }
 }
 
-class _NotificationTile extends StatelessWidget {
+class _NotificationTile extends ConsumerWidget {
   const _NotificationTile({required this.notification});
   final NotificationModel notification;
 
-  @override
-  Widget build(BuildContext context) {
-    final isLike = notification.type == NotificationType.like;
+  void _onTap(BuildContext context, WidgetRef ref) {
+    // Mark as read
+    if (!notification.isRead) {
+      ref
+          .read(notificationRepositoryProvider)
+          .markOneRead(notification.id);
+    }
+    // Navigate
+    switch (notification.type) {
+      case NotificationType.like:
+      case NotificationType.comment:
+        if (notification.postId.isNotEmpty) {
+          context.push('/post/${notification.postId}');
+        }
+      case NotificationType.follow:
+        if (notification.actorId.isNotEmpty) {
+          context.push('/user/${notification.actorId}');
+        }
+    }
+  }
 
-    return Container(
-      color: notification.isRead
-          ? Colors.transparent
-          : const Color(0xFF0F0A0A),
-      child: ListTile(
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-        leading: Container(
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(
-            color: const Color(0xFF1A1A1A),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: const Color(0xFF2A2A2A)),
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isLike = notification.type == NotificationType.like;
+    final isFollow = notification.type == NotificationType.follow;
+
+    return GestureDetector(
+      onTap: () => _onTap(context, ref),
+      child: Container(
+        color: notification.isRead
+            ? Colors.transparent
+            : const Color(0xFF0F0A0A),
+        child: ListTile(
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+          leading: Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: const Color(0xFF1A1A1A),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: const Color(0xFF2A2A2A)),
+            ),
+            child: Icon(
+              isFollow
+                  ? Icons.person_add
+                  : isLike
+                      ? Icons.favorite
+                      : Icons.chat_bubble,
+              color: isLike
+                  ? const Color(0xFFCC0000)
+                  : isFollow
+                      ? const Color(0xFF4A9EFF)
+                      : const Color(0xFF666666),
+              size: 18,
+            ),
           ),
-          child: Icon(
-            isLike ? Icons.favorite : Icons.chat_bubble,
-            color: isLike
-                ? const Color(0xFFCC0000)
-                : const Color(0xFF666666),
-            size: 18,
+          title: Text(
+            notification.message,
+            style: GoogleFonts.notoSerifJp(
+              fontSize: 13,
+              color: notification.isRead
+                  ? const Color(0xFF888888)
+                  : const Color(0xFFDDDDDD),
+              height: 1.5,
+            ),
           ),
-        ),
-        title: Text(
-          notification.message,
-          style: GoogleFonts.notoSerifJp(
-            fontSize: 13,
-            color: notification.isRead
-                ? const Color(0xFF888888)
-                : const Color(0xFFDDDDDD),
-            height: 1.5,
+          subtitle: Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Text(
+              _formatTime(notification.createdAt),
+              style: const TextStyle(
+                  fontSize: 11, color: Color(0xFF555555)),
+            ),
           ),
-        ),
-        subtitle: Padding(
-          padding: const EdgeInsets.only(top: 4),
-          child: Text(
-            _formatTime(notification.createdAt),
-            style: const TextStyle(
-                fontSize: 11, color: Color(0xFF555555)),
-          ),
-        ),
-        trailing: notification.isRead
-            ? null
-            : Container(
-                width: 8,
-                height: 8,
-                decoration: const BoxDecoration(
-                  color: Color(0xFFCC0000),
-                  shape: BoxShape.circle,
+          trailing: notification.isRead
+              ? null
+              : Container(
+                  width: 8,
+                  height: 8,
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFCC0000),
+                    shape: BoxShape.circle,
+                  ),
                 ),
-              ),
+        ),
       ),
     );
   }

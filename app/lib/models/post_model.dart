@@ -2,6 +2,7 @@ class PostModel {
   final String id;
   final String userId;
   final String authorName;
+  final String? authorPhotoUrl;
   final String title;
   final String content;
   final DateTime createdAt;
@@ -14,6 +15,7 @@ class PostModel {
     required this.id,
     required this.userId,
     required this.authorName,
+    this.authorPhotoUrl,
     required this.title,
     required this.content,
     required this.createdAt,
@@ -37,6 +39,7 @@ class PostModel {
       id: id,
       userId: userId,
       authorName: authorName,
+      authorPhotoUrl: authorPhotoUrl,
       title: title,
       content: content,
       createdAt: createdAt,

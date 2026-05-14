@@ -11,6 +11,8 @@ import '../../features/post/post_detail_page.dart';
 import '../../features/profile/profile_page.dart';
 import '../../features/profile/edit_profile_page.dart';
 import '../../features/notifications/notifications_page.dart';
+import '../../features/profile/user_profile_page.dart';
+import '../../features/profile/following_list_page.dart';
 
 class _RouterRefreshNotifier extends ChangeNotifier {
   void refresh() => notifyListeners();
@@ -29,22 +31,38 @@ final routerProvider = Provider<GoRouter>((ref) {
       if (authState.isLoading) return null;
       final isLoggedIn = authState.valueOrNull != null;
       final loc = state.matchedLocation;
+
       final isAuthRoute = loc == '/login' || loc == '/register';
-      final isProtected = loc == '/post' || loc == '/profile';
-      if (!isLoggedIn && isProtected) return '/login';
+      final isPublicRoute = loc.startsWith('/feed') ||
+          loc.startsWith('/search') ||
+          loc.startsWith('/post/') ||
+          loc.startsWith('/user/');
+
       if (isLoggedIn && isAuthRoute) return '/feed';
+      if (!isLoggedIn && !isAuthRoute && !isPublicRoute) return '/login';
       return null;
     },
     routes: [
       GoRoute(path: '/login', builder: (_, __) => const LoginPage()),
       GoRoute(path: '/register', builder: (_, __) => const RegisterPage()),
-      ShellRoute(
-        builder: (context, state, child) => MainShell(child: child),
-        routes: [
-          GoRoute(path: '/feed', builder: (_, __) => const FeedPage()),
-          GoRoute(path: '/search', builder: (_, __) => const SearchPage()),
-          GoRoute(path: '/post', builder: (_, __) => const PostPage()),
-          GoRoute(path: '/profile', builder: (_, __) => const ProfilePage()),
+      // StatefulShellRoute: 各タブが独立した Navigator を持つ。
+      // ShellRoute と異なり boundary crossing 時もナビゲーターが安定する。
+      StatefulShellRoute.indexedStack(
+        builder: (context, state, navigationShell) =>
+            MainShell(navigationShell: navigationShell),
+        branches: [
+          StatefulShellBranch(routes: [
+            GoRoute(path: '/feed', builder: (_, __) => const FeedPage()),
+          ]),
+          StatefulShellBranch(routes: [
+            GoRoute(path: '/search', builder: (_, __) => const SearchPage()),
+          ]),
+          StatefulShellBranch(routes: [
+            GoRoute(path: '/post', builder: (_, __) => const PostPage()),
+          ]),
+          StatefulShellBranch(routes: [
+            GoRoute(path: '/profile', builder: (_, __) => const ProfilePage()),
+          ]),
         ],
       ),
       GoRoute(
@@ -54,55 +72,53 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(path: '/notifications', builder: (_, __) => const NotificationsPage()),
       GoRoute(path: '/profile/edit', builder: (_, __) => const EditProfilePage()),
+      GoRoute(
+        path: '/user/:id',
+        builder: (context, state) =>
+            UserProfilePage(userId: state.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: '/following/:id',
+        builder: (context, state) =>
+            FollowingListPage(userId: state.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: '/followers/:id',
+        builder: (context, state) =>
+            FollowingListPage(userId: state.pathParameters['id']!, showFollowers: true),
+      ),
     ],
   );
 });
 
 class MainShell extends StatelessWidget {
-  final Widget child;
-  const MainShell({super.key, required this.child});
+  const MainShell({super.key, required this.navigationShell});
+  final StatefulNavigationShell navigationShell;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: child,
-      bottomNavigationBar: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 600),
-          child: BottomNavigationBar(
-            backgroundColor: const Color(0xFF0A0A0A),
-            selectedItemColor: const Color(0xFFCC0000),
-            unselectedItemColor: const Color(0xFF555555),
-            currentIndex: _currentIndex(context),
-            type: BottomNavigationBarType.fixed,
-            selectedLabelStyle:
-                const TextStyle(fontSize: 10, fontWeight: FontWeight.w600),
-            unselectedLabelStyle: const TextStyle(fontSize: 10),
-            onTap: (i) {
-              switch (i) {
-                case 0: context.go('/feed');
-                case 1: context.go('/search');
-                case 2: context.go('/post');
-                case 3: context.go('/profile');
-              }
-            },
-            items: const [
-              BottomNavigationBarItem(icon: Icon(Icons.auto_stories), label: '怪談'),
-              BottomNavigationBarItem(icon: Icon(Icons.search), label: '検索'),
-              BottomNavigationBarItem(icon: Icon(Icons.edit), label: '投稿'),
-              BottomNavigationBarItem(icon: Icon(Icons.person), label: 'マイページ'),
-            ],
-          ),
+      body: navigationShell,
+      bottomNavigationBar: BottomNavigationBar(
+        backgroundColor: const Color(0xFF0A0A0A),
+        selectedItemColor: const Color(0xFFCC0000),
+        unselectedItemColor: const Color(0xFF555555),
+        currentIndex: navigationShell.currentIndex,
+        type: BottomNavigationBarType.fixed,
+        selectedLabelStyle:
+            const TextStyle(fontSize: 10, fontWeight: FontWeight.w600),
+        unselectedLabelStyle: const TextStyle(fontSize: 10),
+        onTap: (i) => navigationShell.goBranch(
+          i,
+          initialLocation: i == navigationShell.currentIndex,
         ),
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.auto_stories), label: '怪談'),
+          BottomNavigationBarItem(icon: Icon(Icons.search), label: '検索'),
+          BottomNavigationBarItem(icon: Icon(Icons.edit), label: '投稿'),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'マイページ'),
+        ],
       ),
     );
-  }
-
-  int _currentIndex(BuildContext context) {
-    final loc = GoRouterState.of(context).uri.path;
-    if (loc.startsWith('/search')) return 1;
-    if (loc.startsWith('/post')) return 2;
-    if (loc.startsWith('/profile')) return 3;
-    return 0;
   }
 }

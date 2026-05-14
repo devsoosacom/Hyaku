@@ -7,10 +7,20 @@ class FirestoreNotificationRepository implements NotificationRepository {
 
   NotificationModel _fromDoc(DocumentSnapshot doc) {
     final d = doc.data() as Map<String, dynamic>;
+    NotificationType type;
+    switch (d['type']) {
+      case 'like':
+        type = NotificationType.like;
+      case 'follow':
+        type = NotificationType.follow;
+      default:
+        type = NotificationType.comment;
+    }
     return NotificationModel(
       id: doc.id,
       targetUserId: d['targetUserId'] ?? '',
-      type: d['type'] == 'like' ? NotificationType.like : NotificationType.comment,
+      type: type,
+      actorId: d['actorId'] ?? '',
       actorName: d['actorName'] ?? '',
       postTitle: d['postTitle'] ?? '',
       postId: d['postId'] ?? '',
@@ -26,9 +36,9 @@ class FirestoreNotificationRepository implements NotificationRepository {
     return _db
         .collection('notifications')
         .where('targetUserId', isEqualTo: userId)
-        .orderBy('createdAt', descending: true)
         .snapshots()
-        .map((s) => s.docs.map(_fromDoc).toList());
+        .map((s) => s.docs.map(_fromDoc).toList()
+          ..sort((a, b) => b.createdAt.compareTo(a.createdAt)));
   }
 
   @override
@@ -43,6 +53,14 @@ class FirestoreNotificationRepository implements NotificationRepository {
       batch.update(doc.reference, {'isRead': true});
     }
     await batch.commit();
+  }
+
+  @override
+  Future<void> markOneRead(String notifId) async {
+    await _db
+        .collection('notifications')
+        .doc(notifId)
+        .update({'isRead': true});
   }
 
   @override

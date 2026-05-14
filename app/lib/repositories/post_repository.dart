@@ -12,6 +12,7 @@ abstract class PostRepository {
     required String title,
     required String content,
     List<String> tags,
+    String? authorPhotoUrl,
   });
   Future<void> likePost(String postId, String userId);
   Future<void> unlikePost(String postId, String userId);
@@ -24,4 +25,5 @@ abstract class PostRepository {
     required String content,
   });
   Future<void> deletePost(String postId, String userId);
+  Future<void> deleteComment(String postId, String commentId);
 }

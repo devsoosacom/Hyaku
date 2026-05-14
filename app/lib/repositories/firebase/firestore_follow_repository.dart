@@ -26,14 +26,50 @@ class FirestoreFollowRepository implements FollowRepository {
 
   @override
   Future<void> follow(String followerId, String targetId) async {
-    await _db
-        .collection('follows')
-        .doc('${followerId}_$targetId')
-        .set({
-      'followerId': followerId,
-      'targetId': targetId,
-      'createdAt': FieldValue.serverTimestamp(),
-    });
+    final batch = _db.batch();
+
+    batch.set(
+      _db.collection('follows').doc('${followerId}_$targetId'),
+      {
+        'followerId': followerId,
+        'targetId': targetId,
+        'createdAt': FieldValue.serverTimestamp(),
+      },
+    );
+
+    // Send follow notification to target user
+    batch.set(
+      _db.collection('notifications').doc(),
+      {
+        'targetUserId': targetId,
+        'type': 'follow',
+        'actorId': followerId,
+        'actorName': '',
+        'postId': '',
+        'postTitle': '',
+        'isRead': false,
+        'createdAt': FieldValue.serverTimestamp(),
+      },
+    );
+
+    await batch.commit();
+
+    // Fill in actor name from users collection
+    try {
+      final userSnap = await _db.collection('users').doc(followerId).get();
+      if (!userSnap.exists) return;
+      final name = userSnap.data()?['displayName'] ?? '';
+      final notifs = await _db
+          .collection('notifications')
+          .where('actorId', isEqualTo: followerId)
+          .where('targetUserId', isEqualTo: targetId)
+          .where('type', isEqualTo: 'follow')
+          .where('actorName', isEqualTo: '')
+          .get();
+      for (final d in notifs.docs) {
+        await d.reference.update({'actorName': name});
+      }
+    } catch (_) {}
   }
 
   @override

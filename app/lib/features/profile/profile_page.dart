@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import '../../models/post_model.dart';
 import '../../providers/auth_provider.dart';
+import '../../widgets/user_avatar.dart';
 import '../../providers/follow_provider.dart';
 import '../../providers/notification_provider.dart';
 import '../../providers/post_provider.dart';
@@ -84,17 +85,11 @@ class ProfilePage extends ConsumerWidget {
         children: [
           const SizedBox(height: 32),
           Center(
-            child: CircleAvatar(
+            child: UserAvatar(
+              photoUrl: user.photoUrl,
+              displayName: user.displayName,
               radius: 44,
-              backgroundColor: const Color(0xFF2A2A2A),
-              child: Text(
-                user.displayName.isNotEmpty ? user.displayName[0] : '?',
-                style: GoogleFonts.notoSerifJp(
-                  fontSize: 32,
-                  color: const Color(0xFFCC0000),
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
+              fontSize: 32,
             ),
           ),
           const SizedBox(height: 16),
@@ -154,13 +149,19 @@ class ProfilePage extends ConsumerWidget {
                   _Stat('${posts.length}', '怪談'),
                   _divider(),
                   followersAsync.when(
-                    data: (s) => _Stat('${s.length}', 'フォロワー'),
+                    data: (s) => GestureDetector(
+                      onTap: () => context.push('/followers/${user.id}'),
+                      child: _Stat('${s.length}', 'フォロワー'),
+                    ),
                     loading: () => _Stat('-', 'フォロワー'),
                     error: (_, __) => _Stat('0', 'フォロワー'),
                   ),
                   _divider(),
                   followingAsync.when(
-                    data: (s) => _Stat('${s.length}', 'フォロー中'),
+                    data: (s) => GestureDetector(
+                      onTap: () => context.push('/following/${user.id}'),
+                      child: _Stat('${s.length}', 'フォロー中'),
+                    ),
                     loading: () => _Stat('-', 'フォロー中'),
                     error: (_, __) => _Stat('0', 'フォロー中'),
                   ),
@@ -245,27 +246,29 @@ class ProfilePage extends ConsumerWidget {
   Future<void> _confirmSignOut(BuildContext context, WidgetRef ref) async {
     final ok = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         backgroundColor: const Color(0xFF1A1A1A),
         title: const Text('ログアウトしますか？',
             style: TextStyle(color: Color(0xFFEEEEEE))),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context, false),
+            onPressed: () => Navigator.pop(dialogContext, false),
             child: const Text('キャンセル',
                 style: TextStyle(color: Color(0xFF888888))),
           ),
           TextButton(
-            onPressed: () => Navigator.pop(context, true),
+            onPressed: () => Navigator.pop(dialogContext, true),
             child: const Text('ログアウト',
                 style: TextStyle(color: Color(0xFFCC0000))),
           ),
         ],
       ),
     );
-    if (ok == true) {
-      await ref.read(authProvider.notifier).signOut();
-    }
+    if (ok != true) return;
+
+    final router = GoRouter.of(context);
+    await ref.read(authProvider.notifier).signOut();
+    router.go('/login');
   }
 }
 

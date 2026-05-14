@@ -1,11 +1,11 @@
 {
-    "name": "hyaku",
-    "short_name": "hyaku",
-    "start_url": ".",
+    "name": "百物語",
+    "short_name": "百物語",
+    "start_url": "/",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#0A0A0A",
+    "theme_color": "#CC0000",
+    "description": "怪談を語り、怪談を読む。百物語へようこそ。",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

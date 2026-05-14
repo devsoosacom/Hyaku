@@ -1,6 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../models/comment_model.dart';
-import '../../models/notification_model.dart';
 import '../../models/post_model.dart';
 import '../post_repository.dart';
 
@@ -13,6 +12,7 @@ class FirestorePostRepository implements PostRepository {
       id: doc.id,
       userId: d['userId'] ?? '',
       authorName: d['authorName'] ?? '',
+      authorPhotoUrl: d['authorPhotoUrl'] as String?,
       title: d['title'] ?? '',
       content: d['content'] ?? '',
       createdAt: d['createdAt'] != null
@@ -53,9 +53,9 @@ class FirestorePostRepository implements PostRepository {
     return _db
         .collection('posts')
         .where('userId', isEqualTo: userId)
-        .orderBy('createdAt', descending: true)
         .snapshots()
-        .map((s) => s.docs.map(_postFromDoc).toList());
+        .map((s) => s.docs.map(_postFromDoc).toList()
+          ..sort((a, b) => b.createdAt.compareTo(a.createdAt)));
   }
 
   @override
@@ -89,10 +89,12 @@ class FirestorePostRepository implements PostRepository {
     required String title,
     required String content,
     List<String> tags = const [],
+    String? authorPhotoUrl,
   }) async {
     await _db.collection('posts').add({
       'userId': userId,
       'authorName': authorName,
+      'authorPhotoUrl': authorPhotoUrl,
       'title': title,
       'content': content,
       'tags': tags,
@@ -196,6 +198,19 @@ class FirestorePostRepository implements PostRepository {
   @override
   Future<void> deletePost(String postId, String userId) async {
     await _db.collection('posts').doc(postId).delete();
+  }
+
+  @override
+  Future<void> deleteComment(String postId, String commentId) async {
+    final batch = _db.batch();
+    batch.delete(
+      _db.collection('posts').doc(postId).collection('comments').doc(commentId),
+    );
+    batch.update(
+      _db.collection('posts').doc(postId),
+      {'commentCount': FieldValue.increment(-1)},
+    );
+    await batch.commit();
   }
 
   Future<void> _updateNotificationActorName(

@@ -1,0 +1,113 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ─────────────────────────────────────────────
+    // Helper functions
+    // ─────────────────────────────────────────────
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && request.auth.uid == 'dRFL5GfO15a0fRbfmfS6uQIshvp1';
+    }
+
+    function isValidPost() {
+      let d = request.resource.data;
+      return d.keys().hasAll(['userId', 'authorName', 'title', 'content', 'createdAt'])
+          && d.title is string && d.title.size() >= 1 && d.title.size() <= 200
+          && d.content is string && d.content.size() >= 1 && d.content.size() <= 10000
+          && d.userId == request.auth.uid;
+    }
+
+    function isValidComment() {
+      let d = request.resource.data;
+      return d.keys().hasAll(['userId', 'authorName', 'content', 'createdAt'])
+          && d.content is string && d.content.size() >= 1 && d.content.size() <= 1000
+          && d.userId == request.auth.uid;
+    }
+
+    // ─────────────────────────────────────────────
+    // users コレクション
+    // ─────────────────────────────────────────────
+    match /users/{userId} {
+      // 自分のプロフィールは読み書き可。他人のは読み取りのみ（表示名等を取得するため）
+      allow read: if isSignedIn();
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId)
+          && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['uid']);
+      allow delete: if false;
+    }
+
+    // ─────────────────────────────────────────────
+    // posts コレクション
+    // ─────────────────────────────────────────────
+    match /posts/{postId} {
+      allow read: if true;  // 未ログインでも怪談は読める
+
+      allow create: if isSignedIn() && isValidPost();
+
+      // 投稿者は全フィールド更新可。
+      // 他の認証済みユーザーは likedBy / bookmarkedBy / commentCount のみ更新可。
+      allow update: if isSignedIn() && (
+          isOwner(resource.data.userId)
+          || (
+              request.resource.data.diff(resource.data).affectedKeys()
+                  .hasOnly(['likedBy', 'bookmarkedBy', 'commentCount', 'likeCount'])
+          )
+      );
+
+      allow delete: if isOwner(resource.data.userId) || isAdmin();
+
+      // comments サブコレクション
+      match /comments/{commentId} {
+        allow read: if true;  // 未ログインでもコメントは読める
+        allow create: if isSignedIn() && isValidComment();
+        allow update: if isOwner(resource.data.userId);
+        allow delete: if isOwner(resource.data.userId);
+      }
+    }
+
+    // ─────────────────────────────────────────────
+    // notifications コレクション
+    // ─────────────────────────────────────────────
+    match /notifications/{notifId} {
+      // 自分宛て通知のみ読み取り可
+      allow read: if isSignedIn() && request.auth.uid == resource.data.targetUserId;
+
+      // サーバーサイド（他ユーザーのいいね/コメントアクション）から書き込み
+      // → 認証済みであれば作成可（自分宛て以外も作成可能 = 他人への通知送信）
+      allow create: if isSignedIn();
+
+      // 既読フラグのみ更新可（自分宛て通知のみ）
+      allow update: if isSignedIn()
+          && request.auth.uid == resource.data.targetUserId
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isRead']);
+
+      allow delete: if isSignedIn() && request.auth.uid == resource.data.targetUserId;
+    }
+
+    // ─────────────────────────────────────────────
+    // follows コレクション
+    // ─────────────────────────────────────────────
+    match /follows/{followId} {
+      // followId の形式: {followerId}_{targetId}
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && request.auth.uid == request.resource.data.followerId;
+      allow delete: if isSignedIn() && request.auth.uid == resource.data.followerId;
+      allow update: if false;
+    }
+
+    // ─────────────────────────────────────────────
+    // その他すべて拒否
+    // ─────────────────────────────────────────────
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

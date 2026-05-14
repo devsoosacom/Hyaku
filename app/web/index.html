@@ -1,38 +1,135 @@
 <!DOCTYPE html>
-<html>
+<html lang="ja">
 <head>
-  <!--
-    If you are serving your web app in a path other than the root, change the
-    href value below to reflect the base path you are serving from.
-
-    The path provided below has to start and end with a slash "/" in order for
-    it to work correctly.
-
-    For more details:
-    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
-
-    This is a placeholder for base href that will be replaced by the value of
-    the `--base-href` argument provided to `flutter build`.
-  -->
   <base href="$FLUTTER_BASE_HREF">
 
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="A new Flutter project.">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <!-- iOS meta tags & icons -->
+  <!-- SEO -->
+  <title>百物語 | 怪談投稿・実話ホラー短編コミュニティ</title>
+  <meta name="description" content="日常に潜む恐怖を語る怪談投稿サービス。実話怪談・ホラー短編を投稿・閲覧・共有できる百物語コミュニティ。怖い話を読む・書く・つながる。">
+  <meta name="keywords" content="百物語,怪談,怖い話,実話怪談,ホラー,心霊,都市伝説,怪談投稿,怪談コミュニティ,ホラー短編,心霊体験">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://hyaku-35692.web.app/">
+
+  <meta name="google-site-verification" content="Ys75SORhV_RfmqbvaYZLCosi56VeGMbsHp5eNrnuvrw">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://hyaku-35692.web.app/">
+  <meta property="og:site_name" content="百物語">
+  <meta property="og:title" content="百物語 | 怪談投稿・実話ホラー短編コミュニティ">
+  <meta property="og:description" content="日常に潜む恐怖を語る怪談投稿サービス。実話怪談・ホラー短編を投稿・閲覧・共有できる百物語コミュニティ。">
+  <meta property="og:image" content="https://hyaku-35692.web.app/icons/Icon-512.png">
+  <meta property="og:image:width" content="512">
+  <meta property="og:image:height" content="512">
+  <meta property="og:locale" content="ja_JP">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="百物語 | 怪談投稿・実話ホラー短編コミュニティ">
+  <meta name="twitter:description" content="日常に潜む恐怖を語る怪談投稿サービス。実話怪談・ホラー短編を投稿・閲覧・共有できる百物語コミュニティ。">
+  <meta name="twitter:image" content="https://hyaku-35692.web.app/icons/Icon-512.png">
+
+  <!-- JSON-LD Structured Data -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "百物語",
+    "alternateName": "Hyakumonogatari",
+    "url": "https://hyaku-35692.web.app/",
+    "description": "日常に潜む恐怖を語る怪談投稿コミュニティ。実話怪談・ホラー短編の投稿・閲覧・共有ができます。",
+    "inLanguage": "ja-JP",
+    "potentialAction": {
+      "@type": "SearchAction",
+      "target": {
+        "@type": "EntryPoint",
+        "urlTemplate": "https://hyaku-35692.web.app/search?q={search_term_string}"
+      },
+      "query-input": "required name=search_term_string"
+    }
+  }
+  </script>
+
+  <!-- Article Structured Data (updated dynamically for post pages) -->
+  <script type="application/ld+json" id="article-ld"></script>
+
+  <!-- PWA / Theme -->
+  <meta name="theme-color" content="#CC0000">
   <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="hyaku">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="百物語">
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
-
-  <!-- Favicon -->
   <link rel="icon" type="image/png" href="favicon.png"/>
-
-  <title>hyaku</title>
   <link rel="manifest" href="manifest.json">
+
+  <!-- Google AdSense (Auto Ads) -->
+  <!-- TODO: AdSense審査通過後 ca-pub-0000000000000000 を実際のパブリッシャーIDに変更 -->
+  <!-- https://adsense.google.com でアカウント作成 → サイト追加 → コード取得 -->
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3891518799622736" crossorigin="anonymous"></script>
+
+  <!-- Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-2XF6K348BJ"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-2XF6K348BJ');
+  </script>
+
+  <!-- Preconnect -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 </head>
 <body>
+  <script>
+    var _defaultTitle = '百物語 | 怪談投稿・実話ホラー短編コミュニティ';
+    var _defaultDesc  = '日常に潜む恐怖を語る怪談投稿サービス。実話怪談・ホラー短編を投稿・閲覧・共有できる百物語コミュニティ。';
+    var _baseUrl      = 'https://hyaku-35692.web.app';
+
+    function _setMeta(sel, attr, val) {
+      var el = document.querySelector(sel);
+      if (el) el.setAttribute(attr, val);
+    }
+
+    function updateMeta(title, desc, url) {
+      document.title = title;
+      _setMeta('meta[name="description"]',          'content', desc);
+      _setMeta('meta[property="og:title"]',         'content', title);
+      _setMeta('meta[property="og:description"]',   'content', desc);
+      _setMeta('meta[property="og:url"]',           'content', url);
+      _setMeta('meta[name="twitter:title"]',        'content', title);
+      _setMeta('meta[name="twitter:description"]',  'content', desc);
+    }
+
+    function resetMeta() {
+      updateMeta(_defaultTitle, _defaultDesc, _baseUrl + '/');
+      var el = document.getElementById('article-ld');
+      if (el) el.textContent = '';
+    }
+
+    function adsbygooglePush() {
+      try { (adsbygoogle = window.adsbygoogle || []).push({}); } catch(e) {}
+    }
+
+    function updateArticleLd(title, desc, url, datePublished, author) {
+      var el = document.getElementById('article-ld');
+      if (!el) return;
+      el.textContent = JSON.stringify({
+        "@context": "https://schema.org",
+        "@type": "Article",
+        "headline": title,
+        "description": desc,
+        "url": url,
+        "datePublished": datePublished,
+        "author": { "@type": "Person", "name": author },
+        "publisher": { "@type": "Organization", "name": "百物語", "url": _baseUrl }
+      });
+    }
+  </script>
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>

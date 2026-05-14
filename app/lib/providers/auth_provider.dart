@@ -49,6 +49,17 @@ class AuthNotifier extends StateNotifier<AsyncValue<UserModel?>> {
   Future<void> updateProfile({String? displayName, String? bio}) async {
     await _repo.updateProfile(displayName: displayName, bio: bio);
   }
+
+  Future<String> updateProfilePhoto(List<int> bytes, String fileName) async {
+    final url = await _repo.updateProfilePhoto(bytes, fileName);
+    // Refresh state so UI picks up new photoUrl
+    if (state.valueOrNull != null) {
+      state = AsyncValue.data(
+        state.valueOrNull!.copyWith(photoUrl: url),
+      );
+    }
+    return url;
+  }
 }
 
 final authProvider =
