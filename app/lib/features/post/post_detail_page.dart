@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../models/post_model.dart';
 import '../../providers/auth_provider.dart';
@@ -314,12 +315,22 @@ class _PostDetailPageState extends ConsumerState<PostDetailPage> {
                         ),
                       ),
                       const SizedBox(height: 16),
-                      Text(
-                        post.content,
-                        style: GoogleFonts.notoSerifJp(
-                          fontSize: 15,
-                          color: const Color(0xFFCCCCCC),
-                          height: 2.0,
+                      MarkdownBody(
+                        data: post.content,
+                        styleSheet: MarkdownStyleSheet(
+                          p: GoogleFonts.notoSerifJp(
+                            fontSize: 15,
+                            color: const Color(0xFFCCCCCC),
+                            height: 2.0,
+                          ),
+                          horizontalRuleDecoration: const BoxDecoration(
+                            border: Border(
+                              top: BorderSide(
+                                color: Color(0xFF333333),
+                                width: 1,
+                              ),
+                            ),
+                          ),
                         ),
                       ),
                       if (post.tags.isNotEmpty) ...[
