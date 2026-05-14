@@ -428,6 +428,7 @@ class _PostDetailPageState extends ConsumerState<PostDetailPage> {
                       const SizedBox(height: 24),
                       const AdBannerWidget(height: 120),
                       const SizedBox(height: 24),
+                      _RelatedPosts(currentPost: post, allPosts: posts),
                       Container(
                         height: 1,
                         color: const Color(0xFF2A2A2A),
@@ -679,6 +680,107 @@ class _CommentTile extends ConsumerWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _RelatedPosts extends StatelessWidget {
+  const _RelatedPosts({required this.currentPost, required this.allPosts});
+  final PostModel currentPost;
+  final List<PostModel> allPosts;
+
+  List<PostModel> _related() {
+    final related = allPosts.where((p) {
+      if (p.id == currentPost.id) return false;
+      return p.tags.any((t) => currentPost.tags.contains(t));
+    }).toList()
+      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    return related.take(4).toList();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final items = _related();
+    if (items.isEmpty) return const SizedBox.shrink();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          '関連怪談',
+          style: GoogleFonts.notoSerifJp(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: const Color(0xFF888888),
+            letterSpacing: 1,
+          ),
+        ),
+        const SizedBox(height: 12),
+        ...items.map((p) => _RelatedPostCard(post: p)),
+        const SizedBox(height: 24),
+      ],
+    );
+  }
+}
+
+class _RelatedPostCard extends StatelessWidget {
+  const _RelatedPostCard({required this.post});
+  final PostModel post;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => context.push('/post/${post.id}'),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: const Color(0xFF111111),
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(color: const Color(0xFF2A2A2A)),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    post.title,
+                    style: GoogleFonts.notoSerifJp(
+                      fontSize: 14,
+                      color: const Color(0xFFDDDDDD),
+                      fontWeight: FontWeight.w600,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    post.authorName,
+                    style: GoogleFonts.notoSerifJp(
+                      fontSize: 11,
+                      color: const Color(0xFF666666),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 12),
+            Row(
+              children: [
+                const Icon(Icons.favorite_border,
+                    size: 13, color: Color(0xFF555555)),
+                const SizedBox(width: 3),
+                Text(
+                  '${post.likeCount}',
+                  style: const TextStyle(
+                      fontSize: 12, color: Color(0xFF555555)),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
