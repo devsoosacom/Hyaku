@@ -89,7 +89,7 @@ def get_next_article(posted):
         return None, None
     fname = files[0]
     path = os.path.join(ARTICLES_DIR, fname)
-    with open(path, encoding='utf-8') as f:
+    with open(path, encoding='utf-8-sig') as f:
         raw = f.read()
     return fname, raw
 

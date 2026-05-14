@@ -86,7 +86,9 @@ def build_tweet(post):
     url     = f"{BASE_URL}/post/{post['id']}"
     tags    = post['tags'][:3]
 
-    # 本文から【解説】より前の部分だけ抜粋（Markdownヘッダーを除去）
+    # BOM・制御文字除去
+    content = content.lstrip('﻿').strip()
+    # 本文から【解説】より前の部分だけ抜粋（Markdownヘッダー・区切り線を除去）
     body = content.split('【解説】')[0].strip()
     first_lines = [
         l.strip() for l in body.split('\n')
