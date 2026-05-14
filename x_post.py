@@ -17,10 +17,10 @@ sys.stdout.reconfigure(encoding='utf-8')
 # TODO: X Developer Portal で取得したキーを設定してください
 # https://developer.x.com → Projects & Apps → Keys and tokens
 # ========================================================
-X_API_KEY             = 'YOUR_API_KEY'
-X_API_SECRET          = 'YOUR_API_SECRET'
-X_ACCESS_TOKEN        = 'YOUR_ACCESS_TOKEN'
-X_ACCESS_TOKEN_SECRET = 'YOUR_ACCESS_TOKEN_SECRET'
+X_API_KEY             = 'UpvRaWvj3Fs0LqAZPZWoHQo59'
+X_API_SECRET          = 'TsJDFiB36iT7ttr4fQqMWkdCMwGt5ICmbbMwvXCRs8hvLg5m2r'
+X_ACCESS_TOKEN        = '2054811077343662081-UvA0kXcap5FEUYsEOcmLwcK2jEp6F8'
+X_ACCESS_TOKEN_SECRET = 'szQx7uEB7TlKBQaGoitPRVwkahaADJYOCD59B4BOfFJZ2'
 # ========================================================
 
 API_KEY    = 'AIzaSyAB_OLK_K5pLIbOkHAztd5k5-NYi7nJth0'
@@ -86,10 +86,12 @@ def build_tweet(post):
     url     = f"{BASE_URL}/post/{post['id']}"
     tags    = post['tags'][:3]
 
-    # 本文から【解説】より前の部分だけ抜粋
+    # 本文から【解説】より前の部分だけ抜粋（Markdownヘッダーを除去）
     body = content.split('【解説】')[0].strip()
-    # 改行を整理して最初の1〜2文を取得
-    first_lines = [l.strip() for l in body.split('\n') if l.strip()]
+    first_lines = [
+        l.strip() for l in body.split('\n')
+        if l.strip() and not l.startswith('#') and not l.startswith('---')
+    ]
     excerpt = first_lines[0] if first_lines else ''
     if len(excerpt) > 60:
         excerpt = excerpt[:60] + '…'
