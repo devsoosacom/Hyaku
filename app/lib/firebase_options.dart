@@ -25,10 +25,9 @@ class DefaultFirebaseOptions {
     measurementId: 'G-2XF6K348BJ',
   );
 
-  // Populated after google-services.json is added
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyAB_OLK_K5pLIbOkHAztd5k5-NYi7nJth0',
-    appId: '1:215836366665:android:placeholder',
+    apiKey: 'AIzaSyCXMzkrvrme72TCojexWzVeU1LouEtYRUM',
+    appId: '1:215836366665:android:4ff96f704a9aa79602ec98',
     messagingSenderId: '215836366665',
     projectId: 'hyaku-35692',
     storageBucket: 'hyaku-35692.firebasestorage.app',

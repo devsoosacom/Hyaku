@@ -5,8 +5,7 @@ plugins {
     id("com.android.application")
     id("kotlin-android")
     id("dev.flutter.flutter-gradle-plugin")
-    // google-services plugin は google-services.json 配置後に有効化する
-    // id("com.google.gms.google-services")
+    id("com.google.gms.google-services")
 }
 
 val keyPropertiesFile = rootProject.file("key.properties")
