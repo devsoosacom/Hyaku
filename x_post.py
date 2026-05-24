@@ -180,14 +180,21 @@ def generate_card(title, body_text, url):
 
 def build_tweet(post):
     title = post['title']
-    url   = f"{BASE_URL}/post/{post['id']}"
     tags  = post['tags'][:3]
-    hashtags = ' '.join(f'#{t}' for t in tags) + ' #百物語 #怪談'
-    # 画像付きなので本文抜粋はなし → タイトル＋URL＋タグだけシンプルに
-    return f"【{title}】\n\n{url}\n\n{hashtags}"
+    # URL はリーチ抑制を避けるため自己リプライで投稿
+    # ハッシュタグ: 既存タグ + 固定タグ（重複除去）
+    fixed = ['実話怪談', '怖い話', '百物語', '怪談']
+    all_tags = tags + [t for t in fixed if t not in tags]
+    hashtags = ' '.join(f'#{t}' for t in all_tags[:5])
+    return f"【{title}】\n\n{hashtags}"
 
 
-def post_to_x(tweet_text, image_path=None):
+def build_reply(post):
+    """URLを自己リプライとして投稿する文"""
+    return f"続きはこちら👉\nhttps://hyaku-35692.web.app/post/{post['id']}"
+
+
+def post_to_x(tweet_text, image_path=None, reply_to_id=None):
     try:
         import tweepy
     except ImportError:
@@ -216,6 +223,8 @@ def post_to_x(tweet_text, image_path=None):
     kwargs = {'text': tweet_text}
     if media_id:
         kwargs['media_ids'] = [media_id]
+    if reply_to_id:
+        kwargs['in_reply_to_tweet_id'] = reply_to_id
 
     response = client.create_tweet(**kwargs)
     return response.data['id']
@@ -249,6 +258,12 @@ def main():
     tweet_id = post_to_x(tweet, CARD_FILE)
     if tweet_id:
         log(f'✅ ツイート成功: https://x.com/i/web/status/{tweet_id}')
+        # URLを自己リプライとして投稿（リーチ抑制を回避）
+        import time; time.sleep(3)
+        reply_text = build_reply(post)
+        reply_id = post_to_x(reply_text, reply_to_id=tweet_id)
+        if reply_id:
+            log(f'✅ リプライ成功（URL）: https://x.com/i/web/status/{reply_id}')
     else:
         log('❌ ツイート失敗')
 
