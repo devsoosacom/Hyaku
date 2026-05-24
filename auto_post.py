@@ -62,9 +62,12 @@ DEFAULT_TAGS = ['実話怪談', 'ホラー', '怖い話']
 def log(msg):
     now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     line = f'[{now}] {msg}'
-    print(line)
-    with open(LOG_FILE, 'a', encoding='utf-8') as f:
-        f.write(line + '\n')
+    print(line, flush=True)
+    try:
+        with open(LOG_FILE, 'a', encoding='utf-8') as f:
+            f.write(line + '\n')
+    except (PermissionError, OSError):
+        pass
 
 
 def load_registry():
