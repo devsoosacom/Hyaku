@@ -22,16 +22,16 @@
   <meta property="og:site_name" content="百物語">
   <meta property="og:title" content="百物語 | 怪談投稿・実話ホラー短編コミュニティ">
   <meta property="og:description" content="日常に潜む恐怖を語る怪談投稿サービス。実話怪談・ホラー短編を投稿・閲覧・共有できる百物語コミュニティ。">
-  <meta property="og:image" content="https://hyaku-35692.web.app/icons/Icon-512.png">
-  <meta property="og:image:width" content="512">
-  <meta property="og:image:height" content="512">
+  <meta property="og:image" content="https://hyaku-35692.web.app/ogp.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
   <meta property="og:locale" content="ja_JP">
 
   <!-- Twitter Card -->
-  <meta name="twitter:card" content="summary">
+  <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="百物語 | 怪談投稿・実話ホラー短編コミュニティ">
   <meta name="twitter:description" content="日常に潜む恐怖を語る怪談投稿サービス。実話怪談・ホラー短編を投稿・閲覧・共有できる百物語コミュニティ。">
-  <meta name="twitter:image" content="https://hyaku-35692.web.app/icons/Icon-512.png">
+  <meta name="twitter:image" content="https://hyaku-35692.web.app/ogp.png">
 
   <!-- JSON-LD Structured Data -->
   <script type="application/ld+json">
@@ -93,7 +93,7 @@
       if (el) el.setAttribute(attr, val);
     }
 
-    function updateMeta(title, desc, url) {
+    function updateMeta(title, desc, url, imageUrl) {
       document.title = title;
       _setMeta('meta[name="description"]',          'content', desc);
       _setMeta('meta[property="og:title"]',         'content', title);
@@ -101,6 +101,10 @@
       _setMeta('meta[property="og:url"]',           'content', url);
       _setMeta('meta[name="twitter:title"]',        'content', title);
       _setMeta('meta[name="twitter:description"]',  'content', desc);
+      if (imageUrl) {
+        _setMeta('meta[property="og:image"]',       'content', imageUrl);
+        _setMeta('meta[name="twitter:image"]',      'content', imageUrl);
+      }
     }
 
     function resetMeta() {
