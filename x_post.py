@@ -21,8 +21,9 @@ PROJECT_ID = 'hyaku-35692'
 ADMIN_EMAIL = 'admin@hyaku.jp'
 ADMIN_PASS  = 'Hyaku@2025!'
 BASE_URL    = 'https://hyaku-35692.web.app'
-LOG_FILE    = r'O:\Hyaku\x_post.log'
-CARD_FILE   = r'O:\Hyaku\tweet_card.png'
+LOG_FILE          = r'O:\Hyaku\x_post.log'
+CARD_FILE         = r'O:\Hyaku\tweet_card.png'
+LAST_TWEETED_FILE = r'O:\Hyaku\last_tweeted_id.txt'
 
 FONT_TITLE  = r'C:\Windows\Fonts\yumindb.ttf'   # 遊明朝 Bold
 FONT_BODY   = r'C:\Windows\Fonts\yumin.ttf'      # 遊明朝
@@ -230,6 +231,22 @@ def post_to_x(tweet_text, image_path=None, reply_to_id=None):
     return response.data['id']
 
 
+def load_last_tweeted_id():
+    try:
+        with open(LAST_TWEETED_FILE, encoding='utf-8') as f:
+            return f.read().strip()
+    except (FileNotFoundError, OSError):
+        return None
+
+
+def save_last_tweeted_id(post_id):
+    try:
+        with open(LAST_TWEETED_FILE, 'w', encoding='utf-8') as f:
+            f.write(post_id)
+    except (PermissionError, OSError):
+        pass
+
+
 def main():
     log('=== X 自動投稿 開始 ===')
 
@@ -242,6 +259,12 @@ def main():
         return
 
     log(f'投稿取得: {post["title"]} (id={post["id"]})')
+
+    # 同じ投稿を2回ツイートしない
+    last_id = load_last_tweeted_id()
+    if last_id == post['id']:
+        log(f'スキップ: 既にツイート済み (id={post["id"]})')
+        return
 
     # カード画像生成
     body_text = clean_text(post['content'])
@@ -258,6 +281,7 @@ def main():
     tweet_id = post_to_x(tweet, CARD_FILE)
     if tweet_id:
         log(f'✅ ツイート成功: https://x.com/i/web/status/{tweet_id}')
+        save_last_tweeted_id(post['id'])
         # URLを自己リプライとして投稿（リーチ抑制を回避）
         import time; time.sleep(3)
         reply_text = build_reply(post)

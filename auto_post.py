@@ -191,7 +191,7 @@ def main():
             import subprocess
             subprocess.run(
                 [sys.executable, r'O:\Hyaku\x_post.py'],
-                check=False, timeout=30
+                check=False, timeout=120
             )
         except Exception as xe:
             log(f'X投稿スキップ: {xe}')
