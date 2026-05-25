@@ -21,10 +21,14 @@ ADMIN_PASS   = 'Hyaku@2025!'
 ADMIN_UID    = 'dRFL5GfO15a0fRbfmfS6uQIshvp1'
 ADMIN_NAME   = '百物語編集部'
 
-ARTICLES_DIR = r'O:\記事作成'
-POSTED_DIR   = r'O:\記事作成\投稿済'
-REGISTRY     = r'O:\Hyaku\posted_registry.json'
-LOG_FILE     = r'O:\Hyaku\auto_post.log'
+ARTICLES_DIR     = r'O:\記事作成'
+POSTED_DIR       = r'O:\記事作成\投稿済'
+REGISTRY         = r'O:\Hyaku\posted_registry.json'
+LOG_FILE         = r'O:\Hyaku\auto_post.log'
+DISCORD_WEBHOOK  = (
+    'https://discord.com/api/webhooks/1500855409018142752/'
+    'FTgbN1hBCI3UJXz4or5Qr8gGawJzrGqdKiNgm0iQ2YBNR0JAG6ULJ1fD4dhpEi_d0Z8t'
+)
 
 TAG_MAP = {
     '夢':     ['夢', 'ホラー'],
@@ -67,6 +71,28 @@ def log(msg):
         with open(LOG_FILE, 'a', encoding='utf-8') as f:
             f.write(line + '\n')
     except (PermissionError, OSError):
+        pass
+
+
+def notify_discord(title, description, success=True):
+    try:
+        color = 0x2ECC71 if success else 0xCC0000
+        payload = json.dumps({
+            'embeds': [{
+                'title': title,
+                'description': description,
+                'color': color,
+                'footer': {'text': 'hyaku-35692.web.app'},
+                'timestamp': datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ'),
+            }]
+        }, ensure_ascii=False).encode('utf-8')
+        req = urllib.request.Request(
+            DISCORD_WEBHOOK, data=payload,
+            headers={'Content-Type': 'application/json', 'User-Agent': 'HyakuBot/1.0'},
+            method='POST',
+        )
+        urllib.request.urlopen(req, timeout=10)
+    except Exception:
         pass
 
 
@@ -183,8 +209,18 @@ def main():
         dst = os.path.join(POSTED_DIR, fname)
         os.rename(src, dst)
 
+        post_url = f'https://hyaku-35692.web.app/post/{post_id}'
         log(f'投稿成功: postId={post_id} title={title}')
-        print(f'\n投稿完了: https://hyaku-35692.web.app/post/{post_id}')
+        print(f'\n投稿完了: {post_url}')
+
+        # Discord 成功通知
+        remaining = len([f for f in os.listdir(ARTICLES_DIR)
+                         if f.endswith('.md') and os.path.isfile(os.path.join(ARTICLES_DIR, f))])
+        notify_discord(
+            f'✅ 投稿完了: {title}',
+            f'[記事を読む]({post_url})\nストック残り: **{remaining}件**',
+            success=True,
+        )
 
         # X(Twitter) への自動投稿
         try:
@@ -196,8 +232,18 @@ def main():
         except Exception as xe:
             log(f'X投稿スキップ: {xe}')
 
+        # サイトマップ更新 & デプロイ
+        try:
+            subprocess.run(
+                [sys.executable, r'O:\Hyaku\update_sitemap.py'],
+                check=False, timeout=120
+            )
+        except Exception as se:
+            log(f'サイトマップ更新スキップ: {se}')
+
     except Exception as e:
         log(f'投稿失敗: {e}')
+        notify_discord('❌ 投稿失敗', str(e)[:300], success=False)
         sys.exit(1)
 
 
